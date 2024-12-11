@@ -1,0 +1,226 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"BO",
+				"BOARD_SIZE"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"install",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/jagnat/programming/vst3_c_api/vst3_c_api.h",
+		"/home/jagnat/programming/godin/test.odin",
+		"/home/jagnat/programming/godin/godin.sublime-project",
+		"/home/jagnat/programming/godin/godin.sublime-workspace",
+		"/home/jagnat/Documents/rock and hard place gladden.txt",
+		"/home/jagnat/programming/raylib_tetroid/raylib_tetroid.odin",
+		"/home/jagnat/Games/the-lord-of-the-rings-onlinetm/drive_c/users/jagnat/Documents/The Lord of the Rings Online/UserPreferences.ini",
+		"/home/jagnat/programming/odin-test/raylib_tetroid.odin",
+		"/home/jagnat/programming/vst3_c_api/Readme.md",
+		"/home/jagnat/programming/vst3_c_api/LICENSE.txt",
+		"/run/media/jagnat/169876059875E421/Users/Jagi/Documents/The Lord of the Rings Online/lotro.keymap",
+		"/run/media/jagnat/Common/Animals as Leaders - 2009 - Animals as Leaders/03 - Thoroughly At Home.mp3.asd",
+		"/home/jagnat/programming/maestro/distribute/Changes since Maestro 2.5.0.txt",
+		"/home/jagnat/programming/odin-test/odin-test.sublime-project",
+		"/home/jagnat/Downloads/maestros/Maestro_v3.2.1/start_maestro.sh",
+		"/home/jagnat/Downloads/maestros/Maestro_v3.2.1/start_abcplayer.sh",
+		"/home/jagnat/.bashrc",
+		"/home/jagnat/Downloads/install_ableton.yaml",
+		"/home/jagnat/Downloads/maestros/Maestro_v3.0.1/start_maestro.sh",
+		"/home/jagnat/Downloads/maestros/Maestro_v3.0.4/start_maestro.sh"
+	],
+	"find":
+	{
+		"height": 27.0
+	},
+	"find_in_files":
+	{
+		"height": 101.0,
+		"where_history":
+		[
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"Steinberg_char16",
+			"Steinberg_CStringW",
+			"Steinberg_char16",
+			"char16_t",
+			"raylib."
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			""
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		},
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 27.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			],
+			[
+				1,
+				0,
+				2,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			0.260966794287,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.LSP Log Panel":
+	{
+		"height": 0.0
+	},
+	"output.diagnostics":
+	{
+		"height": 0.0
+	},
+	"output.exec":
+	{
+		"height": 225.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "odin-test.sublime-project",
+	"replace":
+	{
+		"height": 50.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 331.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 712.0
+	},
+	"selected_group": 1,
+	"settings":
+	{
+		"lsp_show_inlay_hints": false
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 220.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
