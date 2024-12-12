@@ -10,6 +10,10 @@
 		{
 			"name": "Odin Run",
 			"shell_cmd": "odin run ."
+		},
+		{
+			"name": "Odin Run File",
+			"cmd": ["odin", "run", "$file", "-file"]
 		}
 	]
 }

@@ -102,12 +102,14 @@ handle_input::proc() {
 	cx, cy := i32(math.round_f32(stone_pos.x)), i32(math.round_f32(stone_pos.y))
 
 	if cx >= 0 && cx < BOARD_SIZE && cy >= 0 && cy < BOARD_SIZE {
-		if (get_tile(cx, cy) != .Empty) {return}
+		if (get_tile(cx, cy) != .Empty) { return }
 		if rl.IsMouseButtonPressed(.LEFT) {
 			set_tile(cx, cy, nextTile)
 			nextTile = .Black if nextTile == .White else .White
 		}
-		draw_stone(cx, cy, nextTile, false)
+		else if get_tile(cx, cy) == .Empty {
+			draw_stone(cx, cy, nextTile, false)
+		}
 	}
 }
 
