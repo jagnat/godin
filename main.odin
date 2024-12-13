@@ -5,6 +5,7 @@ import "core:time"
 import "core:strings"
 import rl "vendor:raylib"
 import "core:math"
+import "core:math/rand"
 
 BOARD_SIZE :: 19
 
@@ -43,6 +44,8 @@ nextTile : GoTile = .Black
 boardX : f32
 boardY : f32
 
+stoneSounds : [4]rl.Sound
+
 main :: proc() {
 
 	rl.SetConfigFlags({.VSYNC_HINT, .MSAA_4X_HINT})
@@ -50,9 +53,12 @@ main :: proc() {
 	rl.InitWindow(WIDTH, HEIGHT, "game")
 	defer rl.CloseWindow()
 
+	rl.InitAudioDevice()
+
 	// SetTargetFPS(144)
 
 	init()
+	defer cleanup()
 
 	defer delete(board)
 
@@ -93,6 +99,19 @@ init :: proc() {
 	tx.scaleY = f32(board_pix) / (BOARD_SIZE)
 	tx.translateX += tx.scaleX / 2;
 	tx.translateY += tx.scaleY / 2;
+
+	stoneSounds[0] = rl.LoadSound("resource/click1.wav");
+	stoneSounds[1] = rl.LoadSound("resource/click2.wav");
+	stoneSounds[2] = rl.LoadSound("resource/click3.wav");
+	stoneSounds[3] = rl.LoadSound("resource/click4.wav");
+
+	for i in 0..<4 {
+		rl.SetSoundVolume(stoneSounds[i], 0.6)
+	}
+}
+
+cleanup :: proc() {
+
 }
 
 handle_input::proc() {
@@ -105,12 +124,22 @@ handle_input::proc() {
 		if (get_tile(cx, cy) != .Empty) { return }
 		if rl.IsMouseButtonPressed(.LEFT) {
 			set_tile(cx, cy, nextTile)
+			play_random_click()
 			nextTile = .Black if nextTile == .White else .White
 		}
 		else if get_tile(cx, cy) == .Empty {
 			draw_stone(cx, cy, nextTile, false)
 		}
 	}
+
+	if rl.IsKeyPressed(.C) {
+		clear_board()
+	}
+}
+
+play_random_click::proc() {
+	rand := rand.int31() % 4
+	rl.PlaySound(stoneSounds[rand])
 }
 
 draw_stone::proc(x, y: i32, tile : GoTile, opaque: bool) {
@@ -141,6 +170,12 @@ get_tile::proc(x, y: i32) -> GoTile {
 
 set_tile::proc(x, y: i32, tile: GoTile) {
 	board[y * BOARD_SIZE + x] = tile
+}
+
+clear_board::proc() {
+	for i in 0..<(BOARD_SIZE * BOARD_SIZE) {
+		board[i] = .Empty
+	}
 }
 
 draw_stones :: proc() {
