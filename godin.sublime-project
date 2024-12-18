@@ -2,18 +2,29 @@
 	"folders":
 	[
 		{
-			"path": "."
+			"path": ".",
 		}
 	],
 	"build_systems":
 	[
 		{
 			"name": "Odin Run",
-			"shell_cmd": "odin run ."
+			"shell_cmd": "odin run .",
 		},
 		{
 			"name": "Odin Run File",
-			"cmd": ["odin", "run", "$file", "-file"]
+			"cmd": ["odin", "run", "$file", "-file"],
 		}
-	]
+	],
+	"settings":
+	{
+		"LSP":
+		{
+			"auto_complete": false,
+			"odin":
+			{
+				"enabled": true
+			}
+		}
+	},
 }

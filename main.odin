@@ -1,4 +1,4 @@
-package main
+package godin
 
 import "core:fmt"
 import "core:time"
@@ -11,12 +11,6 @@ BOARD_SIZE :: 19
 
 // pixel margin of board from edge of screen
 BOARD_MARGIN :: 20
-
-GoTile :: enum u8 {
-	Empty,
-	White,
-	Black
-}
 
 // board space - 0, 0 in top left corner,
 // 18,18 in bottom right corner
