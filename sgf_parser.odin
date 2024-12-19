@@ -91,8 +91,44 @@ parse_sequence :: proc(parse: ^SgfParseContext) -> (node: ^GameNode, err: io.Err
 parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: io.Error) {
 	node := gamenode_new(parse)
 	properties : [dynamic]SgfProperty
+	match_char(parse, ';') or_return
+	skip_whitespace(parse) or_return
+	ret = nil
+
+	r := peek_char(parse) or_return
+	for r >= 'A' && r <= 'Z' {
+		property := parse_property(parse) or_return
+		append(&properties, property)
+
+		skip_whitespace(parse) or_return
+
+		r = peek_char(parse) or_return
+	}
+
+	foundMove: bool = false
+
+	for prop in properties {
+		switch prop.id {
+			case "W", "B": {
+				if foundMove { return ret, .Unknown }
+				node.tile = .Black if str.contains(prop.id, "B") else .White
+				
+			}
+			case "AB", "AW", "AE": {
+
+			}
+			case "C": {
+
+			}
+			case: break
+		}
+	}
 
 	return nil, .None
+}
+
+parse_property :: proc(parse: ^SgfParseContext) -> (prop: SgfProperty, err: io.Error) {
+	return SgfProperty{}, .None
 }
 
 add_child_node :: proc(parent, child: ^GameNode) {
