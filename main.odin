@@ -1,5 +1,6 @@
 package godin
 
+import "base:runtime"
 import "core:fmt"
 import "core:time"
 import "core:strings"
@@ -43,6 +44,7 @@ stoneSounds : [4]rl.Sound
 main :: proc() {
 
 	rl.SetConfigFlags({.VSYNC_HINT, .MSAA_4X_HINT})
+	rl.SetTraceLogLevel(.ERROR)
 
 	rl.InitWindow(WIDTH, HEIGHT, "game")
 	defer rl.CloseWindow()
@@ -102,6 +104,8 @@ init :: proc() {
 	for i in 0..<4 {
 		rl.SetSoundVolume(stoneSounds[i], 0.6)
 	}
+
+	parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
 }
 
 cleanup :: proc() {
