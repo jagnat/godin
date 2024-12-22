@@ -9,7 +9,7 @@
 	[
 		{
 			"name": "Odin Run",
-			"shell_cmd": "odin run .",
+			"shell_cmd": "odin run . -debug",
 		},
 		{
 			"name": "Odin Run File",
