@@ -39,11 +39,16 @@ parse_from_file :: proc (filepath: string) -> ^GameNode {
 
 parse :: proc(sgf : string) -> ^GameNode {
 
-	parse := SgfParseContext{GoGame{}, str.Reader{}, 1, ""}
+	parse := SgfParseContext{init_game(), str.Reader{}, 1, ""}
 
 	str.reader_init(&parse.reader, sgf)
+	node : ^GameNode
+	err : ParseError
 
-	node, err := parse_gametree(&parse)
+	{
+		context.allocator = parse.game.allocator
+		node, err = parse_gametree(&parse)
+	}
 
 	fmt.println("Managed to parse the whole thing")
 
@@ -202,12 +207,12 @@ parse_property :: proc(parse: ^SgfParseContext) -> (prop: SgfProperty, err: Pars
 	property_end := parse.reader.i
 
 	p := SgfProperty{}
-	er : bool
-	p.id, er = str.substring(parse.reader.s, int(property_start), int(property_end))
-	if (er == false) {
+	st, er := str.cut_clone(parse.reader.s, int(property_start), int(property_end - property_start))
+	if (er != .None) {
 		fmt.println("parse_property: Failed to get substr")
 		return p, .IoError
 	}
+	p.id = st
 
 	skip_whitespace(parse) or_return
 

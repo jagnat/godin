@@ -105,8 +105,8 @@ init :: proc() {
 		rl.SetSoundVolume(stoneSounds[i], 0.6)
 	}
 
-	node := parse_from_file("test.sgf")
-	// node := parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
+	// node := parse_from_file("test.sgf")
+	node := parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
 	// print_sgf(node)
 }
 
