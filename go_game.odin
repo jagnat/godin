@@ -2,18 +2,21 @@ package godin
 
 import vm "core:mem/virtual"
 import "core:mem"
+import "core:fmt"
 
-GoTile :: enum {
+GoTile :: enum u8 {
 	Empty,
 	White,
 	Black
 }
 
-MoveType :: enum {
+MoveType :: enum u8 {
 	None, Move, Pass, Resign
 }
 
-Position :: [2]i32
+Coord :: distinct i8
+
+Position :: [2]Coord
 
 GameNode :: struct {
 	pos : Position,
@@ -33,14 +36,15 @@ GameNode :: struct {
 GoGame :: struct {
 	headNode : ^GameNode,
 	arena : vm.Arena,
-	allocator : mem.Allocator,
+	alloc : mem.Allocator,
 }
 
-init_game :: proc () -> GoGame {
-	game : GoGame
+init_game :: proc (game : ^GoGame) {
 
 	err := vm.arena_init_growing(&game.arena)
-	game.allocator = vm.arena_allocator(&game.arena)
-
-	return game
+	if (err != .None) {
+		fmt.println("Error allocating")
+	}
+	game.alloc = vm.arena_allocator(&game.arena)
 }
+

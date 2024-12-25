@@ -8,7 +8,7 @@ import "core:mem"
 
 SgfParseContext :: struct {
 	// nodePool: ^[dynamic]GameNode,
-	game: GoGame,
+	game: ^GoGame,
 	reader: str.Reader,
 	line_no: i32,
 	error_message: string,
@@ -26,39 +26,40 @@ ParseError :: enum {
 	IoError,
 }
 
-parse_from_file :: proc (filepath: string) -> ^GameNode {
+parse_from_file :: proc (filepath: string) -> ^GoGame {
 
 	data, ok := os.read_entire_file(filepath, context.allocator)
 	if !ok { return nil }
 
-	// defer delete(data, context.allocator)
+	defer delete(data, context.allocator)
 
 	sgf := string(data)
 	return parse(sgf)
 }
 
-parse :: proc(sgf : string) -> ^GameNode {
-
-	parse := SgfParseContext{init_game(), str.Reader{}, 1, ""}
+parse :: proc(sgf : string) -> ^GoGame {
+	game := new(GoGame)
+	init_game(game)
+	parse := SgfParseContext{game, str.Reader{}, 1, ""}
 
 	str.reader_init(&parse.reader, sgf)
 	node : ^GameNode
 	err : ParseError
+	fmt.println("total used before parse:", parse.game.arena.total_used)
 
-	{
-		context.allocator = parse.game.allocator
-		node, err = parse_gametree(&parse)
-	}
+	node, err = parse_gametree(&parse)
 
-	fmt.println("Managed to parse the whole thing")
+	fmt.println("total used after parse:", parse.game.arena.total_used)
 
 	if err != .None {
 		fmt.println("ERRORRRRRRRRRRRRRR", err)
 		return nil
 	}
-	print_sgf(node)
+	game.headNode = node
 
-	return parse.game.headNode
+	// print_sgf(node)
+
+	return game
 }
 
 parse_gametree :: proc(parse : ^SgfParseContext) -> (node: ^GameNode, err: ParseError) {
@@ -188,8 +189,8 @@ pos_from_value :: proc(val : string) -> (Position, ParseError) {
 		return p, .ValueError
 	}
 
-	p[0] = i32(xC - 'a' + 1)
-	p[1] = i32(yC - 'a' + 1)
+	p[0] = Coord(xC - 'a' + 1)
+	p[1] = Coord(yC - 'a' + 1)
 
 	return p, .None
 }
@@ -207,7 +208,7 @@ parse_property :: proc(parse: ^SgfParseContext) -> (prop: SgfProperty, err: Pars
 	property_end := parse.reader.i
 
 	p := SgfProperty{}
-	st, er := str.cut_clone(parse.reader.s, int(property_start), int(property_end - property_start))
+	st, er := str.cut_clone(parse.reader.s, int(property_start), int(property_end - property_start), allocator=parse.game.alloc)
 	if (er != .None) {
 		fmt.println("parse_property: Failed to get substr")
 		return p, .IoError
@@ -224,14 +225,12 @@ parse_property :: proc(parse: ^SgfParseContext) -> (prop: SgfProperty, err: Pars
 		c = peek_char(parse) or_return
 	}
 
-	fmt.println("parse_property:", p.id, "val:", p.values[0], "peek:", c)
-
 	return p, .None
 }
 
 parse_property_value :: proc(parse: ^SgfParseContext) -> (s: string, err: ParseError) {
 	propBuilder := str.Builder{}
-	str.builder_init(&propBuilder)
+	str.builder_init(&propBuilder, allocator = parse.game.alloc)
 	match_char(parse, '[') or_return
 
 	c := peek_char(parse) or_return
@@ -336,7 +335,7 @@ skip_whitespace :: proc(parse: ^SgfParseContext) -> ParseError {
 }
 
 gamenode_new :: proc(parse: ^SgfParseContext) -> ^GameNode {
-	ptr := new(GameNode)
+	ptr := new(GameNode, allocator = parse.game.alloc)
 	return ptr
 }
 

@@ -27,8 +27,8 @@ Homothetic :: struct {
 
 // WIDTH : i32 : 1440
 // HEIGHT : i32 : 900
-WIDTH : i32 : 1024
-HEIGHT : i32 : 768
+WIDTH : i32 = 1024
+HEIGHT : i32 = 768
 
 board : [dynamic]GoTile
 
@@ -43,7 +43,7 @@ stoneSounds : [4]rl.Sound
 
 main :: proc() {
 
-	rl.SetConfigFlags({.VSYNC_HINT, .MSAA_4X_HINT})
+	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT, .MSAA_4X_HINT})
 	rl.SetTraceLogLevel(.ERROR)
 
 	rl.InitWindow(WIDTH, HEIGHT, "game")
@@ -51,14 +51,19 @@ main :: proc() {
 
 	rl.InitAudioDevice()
 
-	// SetTargetFPS(144)
-
 	init()
 	defer cleanup()
 
 	defer delete(board)
 
 	for !rl.WindowShouldClose() {
+
+		if rl.IsWindowResized() {
+			WIDTH = rl.GetScreenWidth()
+			HEIGHT = rl.GetScreenHeight()
+			init_transform()
+		}
+
 		rl.BeginDrawing()
 		defer rl.EndDrawing()
 
@@ -81,20 +86,7 @@ main :: proc() {
 init :: proc() {
 	board = make([dynamic]GoTile, BOARD_SIZE * BOARD_SIZE, BOARD_SIZE * BOARD_SIZE)
 
-	board_pix : f32 = f32(WIDTH if WIDTH < HEIGHT else HEIGHT) - 2 * BOARD_MARGIN
-	boardPixX: f32
-	boardPixY: f32
-	if WIDTH < HEIGHT {
-
-	} else {
-
-	}
-	tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
-	tx.translateY = (f32(HEIGHT / 2) - (board_pix / 2))
-	tx.scaleX = f32(board_pix) / (BOARD_SIZE)
-	tx.scaleY = f32(board_pix) / (BOARD_SIZE)
-	tx.translateX += tx.scaleX / 2;
-	tx.translateY += tx.scaleY / 2;
+	init_transform()
 
 	stoneSounds[0] = rl.LoadSound("resource/click1.wav");
 	stoneSounds[1] = rl.LoadSound("resource/click2.wav");
@@ -106,12 +98,30 @@ init :: proc() {
 	}
 
 	// node := parse_from_file("test.sgf")
-	node := parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
+	game := parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
 	// print_sgf(node)
 }
 
+init_transform :: proc() {
+	board_pix : f32 = f32(WIDTH if WIDTH < HEIGHT else HEIGHT) - 2 * BOARD_MARGIN
+	boardPixX: f32
+	boardPixY: f32
+
+	if WIDTH < HEIGHT {
+
+	} else {
+
+	}
+	tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
+	tx.translateY = (f32(HEIGHT / 2) - (board_pix / 2))
+	tx.scaleX = f32(board_pix) / (BOARD_SIZE)
+	tx.scaleY = f32(board_pix) / (BOARD_SIZE)
+	tx.translateX += tx.scaleX / 2;
+	tx.translateY += tx.scaleY / 2;
+}
+
 cleanup :: proc() {
-	
+
 }
 
 handle_input::proc() {
@@ -130,6 +140,11 @@ handle_input::proc() {
 		else if get_tile(cx, cy) == .Empty {
 			draw_stone(cx, cy, nextTile, false)
 		}
+	}
+
+	mouseMove := rl.GetMouseWheelMove()
+	if abs(mouseMove) > 0.001 {
+		fmt.println("mouse move: ", mouseMove)
 	}
 
 	if rl.IsKeyPressed(.C) {
