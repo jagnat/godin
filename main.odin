@@ -8,8 +8,6 @@ import rl "vendor:raylib"
 import "core:math"
 import "core:math/rand"
 
-BOARD_SIZE :: 19
-
 // pixel margin of board from edge of screen
 BOARD_MARGIN :: 20
 
@@ -25,12 +23,8 @@ Homothetic :: struct {
 
 // Variables
 
-// WIDTH : i32 : 1440
-// HEIGHT : i32 : 900
 WIDTH : i32 = 1024
 HEIGHT : i32 = 768
-
-board : [dynamic]GoTile
 
 tx : Homothetic
 
@@ -40,6 +34,8 @@ boardX : f32
 boardY : f32
 
 stoneSounds : [4]rl.Sound
+
+game : ^GoGame
 
 main :: proc() {
 
@@ -54,7 +50,7 @@ main :: proc() {
 	init()
 	defer cleanup()
 
-	defer delete(board)
+	// defer delete(board)
 
 	for !rl.WindowShouldClose() {
 
@@ -84,9 +80,7 @@ main :: proc() {
 }
 
 init :: proc() {
-	board = make([dynamic]GoTile, BOARD_SIZE * BOARD_SIZE, BOARD_SIZE * BOARD_SIZE)
-
-	init_transform()
+	// board = make([dynamic]GoTile, BOARD_SIZE * BOARD_SIZE, BOARD_SIZE * BOARD_SIZE)
 
 	stoneSounds[0] = rl.LoadSound("resource/click1.wav");
 	stoneSounds[1] = rl.LoadSound("resource/click2.wav");
@@ -98,8 +92,10 @@ init :: proc() {
 	}
 
 	// node := parse_from_file("test.sgf")
-	game := parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
+	game = parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
 	// print_sgf(node)
+
+	init_transform()
 }
 
 init_transform :: proc() {
@@ -114,8 +110,8 @@ init_transform :: proc() {
 	}
 	tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
 	tx.translateY = (f32(HEIGHT / 2) - (board_pix / 2))
-	tx.scaleX = f32(board_pix) / (BOARD_SIZE)
-	tx.scaleY = f32(board_pix) / (BOARD_SIZE)
+	tx.scaleX = f32(board_pix) / f32(game.boardSize)
+	tx.scaleY = f32(board_pix) / f32(game.boardSize)
 	tx.translateX += tx.scaleX / 2;
 	tx.translateY += tx.scaleY / 2;
 }
@@ -128,27 +124,29 @@ handle_input::proc() {
 	pos := rl.GetMousePosition()
 
 	stone_pos := px_to_stone(pos)
-	cx, cy := i32(math.round_f32(stone_pos.x)), i32(math.round_f32(stone_pos.y))
+	cx, cy := Coord(math.round_f32(stone_pos.x)), Coord(math.round_f32(stone_pos.y))
 
-	if cx >= 0 && cx < BOARD_SIZE && cy >= 0 && cy < BOARD_SIZE {
-		if (get_tile(cx, cy) != .Empty) { return }
+	if cx >= 0 && cx < game.boardSize && cy >= 0 && cy < game.boardSize {
+		if (get_tile(game, cx, cy) != .Empty) { return }
 		if rl.IsMouseButtonPressed(.LEFT) {
-			set_tile(cx, cy, nextTile)
+			set_tile(game, cx, cy, nextTile)
 			play_random_click()
 			nextTile = .Black if nextTile == .White else .White
 		}
-		else if get_tile(cx, cy) == .Empty {
+		else if get_tile(game, cx, cy) == .Empty {
 			draw_stone(cx, cy, nextTile, false)
 		}
 	}
 
 	mouseMove := rl.GetMouseWheelMove()
 	if abs(mouseMove) > 0.001 {
-		fmt.println("mouse move: ", mouseMove)
+		if mouseMove < 1 {
+			advance(game)
+		}
 	}
 
 	if rl.IsKeyPressed(.C) {
-		clear_board()
+		clear_board(game)
 	}
 }
 
@@ -157,7 +155,7 @@ play_random_click::proc() {
 	rl.PlaySound(stoneSounds[rand])
 }
 
-draw_stone::proc(x, y: i32, tile : GoTile, opaque: bool) {
+draw_stone::proc(x, y: Coord, tile : GoTile, opaque: bool) {
 	pos := stone_to_px({f32(x), f32(y)})
 	if tile == .Empty { return }
 	hex : u32 = 0xFFFFFF00 if tile == .White else 0x00000000
@@ -179,40 +177,27 @@ px_to_stone::proc(a: rl.Vector2) -> rl.Vector2 {
 	return ret
 }
 
-get_tile::proc(x, y: i32) -> GoTile {
-	return board[y * BOARD_SIZE + x]
-}
-
-set_tile::proc(x, y: i32, tile: GoTile) {
-	board[y * BOARD_SIZE + x] = tile
-}
-
-clear_board::proc() {
-	for i in 0..<(BOARD_SIZE * BOARD_SIZE) {
-		board[i] = .Empty
-	}
-}
-
 draw_stones :: proc() {
-	for j in 0..<BOARD_SIZE {
-		for i in 0..<BOARD_SIZE {
-			stone := board[j * BOARD_SIZE + i]
+	for j in 0..<game.boardSize {
+		for i in 0..<game.boardSize {
+			stone := get_tile(game, i, j)
 			if stone == .Empty { continue }
-			draw_stone(i32(i), i32(j), stone, true)
+			draw_stone(Coord(i), Coord(j), stone, true)
 		}
 	}
 }
 
 draw_board :: proc() {
 	boardOrigin := stone_to_px({-0.5, -0.5})
+	bs := f32(game.boardSize)
 
-	rl.DrawRectangleV(boardOrigin, stone_to_px({BOARD_SIZE - 0.5, BOARD_SIZE - 0.5}) - boardOrigin, rl.GetColor(0xad8d40FF))
+	rl.DrawRectangleV(boardOrigin, stone_to_px({bs - 0.5, bs - 0.5}) - boardOrigin, rl.GetColor(0xad8d40FF))
 
 	orig := stone_to_px({})
-	end := stone_to_px({BOARD_SIZE - 1, BOARD_SIZE - 1})
+	end := stone_to_px({bs - 1, bs - 1})
 
 	// Draw lines
-	for i in 0..<BOARD_SIZE {
+	for i in 0..<bs {
 
 		STROKE :: 2
 
@@ -226,7 +211,7 @@ draw_board :: proc() {
 	// Draw hoshi
 	// Hardcode for now
 	hoshi_19 := []f32{3, 9, 15}
-	if (BOARD_SIZE == 19) {
+	if (game.boardSize == 19) {
 		for i in hoshi_19 {
 			for j in hoshi_19 {
 				p := stone_to_px({i, j})

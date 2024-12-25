@@ -7,7 +7,6 @@ import "core:fmt"
 import "core:mem"
 
 SgfParseContext :: struct {
-	// nodePool: ^[dynamic]GameNode,
 	game: ^GoGame,
 	reader: str.Reader,
 	line_no: i32,
@@ -189,8 +188,8 @@ pos_from_value :: proc(val : string) -> (Position, ParseError) {
 		return p, .ValueError
 	}
 
-	p[0] = Coord(xC - 'a' + 1)
-	p[1] = Coord(yC - 'a' + 1)
+	p[0] = Coord(xC - 'a')
+	p[1] = Coord(yC - 'a')
 
 	return p, .None
 }
@@ -311,9 +310,12 @@ peek_char :: proc (parse: ^SgfParseContext) -> (r: rune, err: ParseError) {
 }
 
 skip_char :: proc(parse: ^SgfParseContext) -> ParseError {
-	_, _, err := str.reader_read_rune(&parse.reader)
+	r, _, err := str.reader_read_rune(&parse.reader)
 	if err == .EOF {
 		return .SyntaxError
+	}
+	if r == '\n' {
+		parse.line_no += 1
 	}
 	return .None
 }
