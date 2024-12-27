@@ -42,7 +42,7 @@ main :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT, .MSAA_4X_HINT})
 	rl.SetTraceLogLevel(.ERROR)
 
-	rl.InitWindow(WIDTH, HEIGHT, "game")
+	rl.InitWindow(WIDTH, HEIGHT, "Go")
 	defer rl.CloseWindow()
 
 	rl.InitAudioDevice()
@@ -80,7 +80,6 @@ main :: proc() {
 }
 
 init :: proc() {
-	// board = make([dynamic]GoTile, BOARD_SIZE * BOARD_SIZE, BOARD_SIZE * BOARD_SIZE)
 
 	stoneSounds[0] = rl.LoadSound("resource/click1.wav");
 	stoneSounds[1] = rl.LoadSound("resource/click2.wav");
@@ -93,6 +92,8 @@ init :: proc() {
 
 	// node := parse_from_file("test.sgf")
 	game = parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
+	// game = new(GoGame)
+	// init_game(game)
 	// print_sgf(node)
 
 	init_transform()

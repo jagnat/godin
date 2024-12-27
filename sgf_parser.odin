@@ -38,7 +38,7 @@ parse_from_file :: proc (filepath: string) -> ^GoGame {
 
 parse :: proc(sgf : string) -> ^GoGame {
 	game := new(GoGame)
-	init_game(game)
+	init_game(game, generateHeadNode = false)
 	parse := SgfParseContext{game, str.Reader{}, 1, ""}
 
 	str.reader_init(&parse.reader, sgf)
@@ -56,7 +56,7 @@ parse :: proc(sgf : string) -> ^GoGame {
 	}
 	game.headNode = node
 
-	// print_sgf(node)
+	free_all(context.temp_allocator)
 
 	return game
 }
@@ -87,7 +87,6 @@ parse_gametree :: proc(parse : ^SgfParseContext) -> (node: ^GameNode, err: Parse
 
 	e := match_char(parse, ')')
 	if e != .None {
-		fmt.println("This is the one we hit?")
 		return node, e
 	}
 
@@ -122,7 +121,7 @@ parse_sequence :: proc(parse: ^SgfParseContext) -> (node: ^GameNode, err: ParseE
 
 parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError) {
 	ret = gamenode_new(parse)
-	properties : [dynamic]SgfProperty
+	properties : [dynamic]SgfProperty = make([dynamic]SgfProperty, allocator=context.temp_allocator)
 	match_char(parse, ';') or_return
 	skip_whitespace(parse) or_return
 
@@ -138,11 +137,12 @@ parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError)
 
 	foundMove: bool = false
 
+	setupPoints : [dynamic]SetupStone = make([dynamic]SetupStone, allocator=context.temp_allocator)
+
 	for prop in properties {
 		switch prop.id {
 			case "W", "B": {
 				if foundMove {
-					fmt.println("Found move")
 					return ret, .ValueError
 				}
 				ret.tile = .Black if str.contains(prop.id, "B") else .White
@@ -151,11 +151,10 @@ parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError)
 				foundMove = true
 			}
 			case "AB", "AW", "AE": {
-				points := &ret.addedBlack if str.contains(prop.id, "AB") else
-					(&ret.addedWhite if str.contains(prop.id, "AW") else &ret.cleared)
+				tile : GoTile = .Black if str.contains(prop.id, "AB") else (.White if str.contains(prop.id, "AW") else .Empty)
 				for val in prop.values {
 					p := pos_from_value(val) or_return
-					append(points, p)
+					append(&setupPoints, SetupStone{p, tile})
 				}
 			}
 			case "C": {
@@ -163,6 +162,11 @@ parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError)
 			}
 			case: break
 		}
+	}
+
+	if len(setupPoints) > 0 {
+		ret.setupStones = make([dynamic]SetupStone, len(setupPoints), allocator=parse.game.alloc)
+		copy_slice(ret.setupStones[:], setupPoints[:])
 	}
 
 	return ret, .None
@@ -176,7 +180,6 @@ pos_from_value :: proc(val : string) -> (Position, ParseError) {
 	}
 
 	if len(val) != 2 {
-		fmt.println("pos_from_value: Val not len 2")
 		return p, .ValueError
 	}
 
@@ -184,7 +187,6 @@ pos_from_value :: proc(val : string) -> (Position, ParseError) {
 	yC := val[1]
 
 	if xC < 'a' || xC > 's' || yC < 'a' || yC > 's' {
-		fmt.println("pos_from_value: Coordinate outside bounds")
 		return p, .ValueError
 	}
 
@@ -194,7 +196,7 @@ pos_from_value :: proc(val : string) -> (Position, ParseError) {
 	return p, .None
 }
 
-parse_property :: proc(parse: ^SgfParseContext) -> (prop: SgfProperty, err: ParseError) {
+parse_property :: proc(parse: ^SgfParseContext) -> (p: SgfProperty, err: ParseError) {
 
 	c := peek_char(parse) or_return
 	property_start := parse.reader.i
@@ -206,25 +208,25 @@ parse_property :: proc(parse: ^SgfParseContext) -> (prop: SgfProperty, err: Pars
 
 	property_end := parse.reader.i
 
-	p := SgfProperty{}
+	prop := SgfProperty{}
+	prop.values = make([dynamic]string, allocator=context.temp_allocator)
 	st, er := str.cut_clone(parse.reader.s, int(property_start), int(property_end - property_start), allocator=parse.game.alloc)
 	if (er != .None) {
-		fmt.println("parse_property: Failed to get substr")
-		return p, .IoError
+		return prop, .IoError
 	}
-	p.id = st
+	prop.id = st
 
 	skip_whitespace(parse) or_return
 
 	c = peek_char(parse) or_return
 	for c == '[' {
 		val := parse_property_value(parse) or_return
-		append(&p.values, val)
+		append(&prop.values, val)
 		skip_whitespace(parse) or_return
 		c = peek_char(parse) or_return
 	}
 
-	return p, .None
+	return prop, .None
 }
 
 parse_property_value :: proc(parse: ^SgfParseContext) -> (s: string, err: ParseError) {
@@ -289,12 +291,10 @@ get_child_count :: proc(parent: ^GameNode) -> i64 {
 match_char :: proc (parse : ^SgfParseContext, c: rune) -> ParseError {
 	r, i, er := str.reader_read_rune(&parse.reader)
 	if er != .None {
-		fmt.println("match_char line: ", parse.line_no)
 		return .SyntaxError
 	}
 	if r != c {
 		str.reader_unread_rune(&parse.reader)
-		fmt.println("match_char: Failed to match, expected", c, "at line no", parse.line_no, "and got", r)
 		return .SyntaxError
 	}
 	return .None
@@ -348,6 +348,7 @@ print_sgf :: proc(node: ^GameNode) {
 	fmt.println()
 }
 
+@private
 print_sgf_recurse :: proc(node: ^GameNode, prefix: ^str.Builder, last: bool) {
 	if node == nil {
 		fmt.println("Nothing to print, node is nil")
