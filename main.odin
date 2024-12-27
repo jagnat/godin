@@ -7,6 +7,7 @@ import "core:strings"
 import rl "vendor:raylib"
 import "core:math"
 import "core:math/rand"
+import "core:mem"
 
 // pixel margin of board from edge of screen
 BOARD_MARGIN :: 20
@@ -38,6 +39,28 @@ stoneSounds : [4]rl.Sound
 game : ^GoGame
 
 main :: proc() {
+
+	when ODIN_DEBUG {
+		track: mem.Tracking_Allocator
+		mem.tracking_allocator_init(&track, context.allocator)
+		context.allocator = mem.tracking_allocator(&track)
+
+		defer {
+			if len(track.allocation_map) > 0 {
+				fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
+				for _, entry in track.allocation_map {
+					fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
+				}
+			}
+			if len(track.bad_free_array) > 0 {
+				fmt.eprintf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
+				for entry in track.bad_free_array {
+					fmt.eprintf("- %p @ %v\n", entry.memory, entry.location)
+				}
+			}
+			mem.tracking_allocator_destroy(&track)
+		}
+	}
 
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT, .MSAA_4X_HINT})
 	rl.SetTraceLogLevel(.ERROR)
@@ -71,11 +94,7 @@ main :: proc() {
 
 		draw_stones()
 
-		b := strings.builder_make()
-		fps := rl.GetFPS()
-
-		strings.write_int(&b, int(fps))
-		rl.DrawText(strings.to_cstring(&b), 10, 10, 18, rl.BLACK)
+		rl.DrawFPS(10, 10)
 	}
 }
 
@@ -118,7 +137,7 @@ init_transform :: proc() {
 }
 
 cleanup :: proc() {
-
+	free(game)
 }
 
 handle_input::proc() {

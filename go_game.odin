@@ -57,6 +57,7 @@ GoGame :: struct {
 	whiteCaptures: i32,
 	blackCaptures: i32,
 	komi: f32,
+	turnColor: GoTile
 }
 
 init_game :: proc (game : ^GoGame, boardSize : Coord = 19, generateHeadNode : bool = true) {
@@ -72,6 +73,7 @@ init_game :: proc (game : ^GoGame, boardSize : Coord = 19, generateHeadNode : bo
 		game.headNode = new(GameNode, allocator=game.alloc)
 	}
 	game.capturePool = make([dynamic]Position, CapturePoolSize, allocator=game.alloc)
+	game.turnColor = .Black
 }
 
 get_tile_pos :: proc(game : ^GoGame, pos : Position) -> GoTile {
@@ -123,6 +125,10 @@ advance :: proc(game : ^GoGame) {
 		case: break
 	}
 	game.currentPosition = node
+}
+
+can_move :: proc(game : ^GoGame, pos: Position) {
+	
 }
 
 do_move :: proc(game : ^GoGame, pos : Position) {

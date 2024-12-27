@@ -210,7 +210,7 @@ parse_property :: proc(parse: ^SgfParseContext) -> (p: SgfProperty, err: ParseEr
 
 	prop := SgfProperty{}
 	prop.values = make([dynamic]string, allocator=context.temp_allocator)
-	st, er := str.cut_clone(parse.reader.s, int(property_start), int(property_end - property_start), allocator=parse.game.alloc)
+	st, er := str.cut_clone(parse.reader.s, int(property_start), int(property_end - property_start), allocator=context.temp_allocator)
 	if (er != .None) {
 		return prop, .IoError
 	}
