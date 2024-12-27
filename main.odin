@@ -33,6 +33,7 @@ boardX : f32
 boardY : f32
 
 stoneSounds : [4]rl.Sound
+captureSounds : [2]rl.Sound
 
 game : ^GoGame
 
@@ -91,6 +92,8 @@ main :: proc() {
 		draw_stones()
 
 		rl.DrawFPS(10, 10)
+
+		free_all(context.temp_allocator)
 	}
 }
 
@@ -101,10 +104,16 @@ init :: proc() {
 	stoneSounds[2] = rl.LoadSound("resource/click3.wav");
 	stoneSounds[3] = rl.LoadSound("resource/click4.wav");
 
-	for i in 0..<4 {
-		rl.SetSoundVolume(stoneSounds[i], 0.6)
+	captureSounds[0] = rl.LoadSound("resource/capture1.wav")
+	captureSounds[1] = rl.LoadSound("resource/capture2.wav")
+
+	for s in stoneSounds {
+		rl.SetSoundVolume(s, 0.6)
 	}
 
+	for s in captureSounds {
+		rl.SetSoundVolume(s, 0.6)
+	}
 	// node := parse_from_file("test.sgf")
 	game = parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
 	// game = new(GoGame)
@@ -146,11 +155,14 @@ handle_input::proc() {
 
 		if can_move(game, Position{cx, cy}) {
 			if rl.IsMouseButtonPressed(.LEFT) {
-				set_tile(game, cx, cy, game.nextTile)
-				play_random_click()
-				game.nextTile = .Black if game.nextTile == .White else .White
+				captured := do_move(game, Position{cx, cy})
+				if !captured {
+					play_random_click()
+				} else {
+					play_random_capture()
+				}
 			}
-			else if get_tile(game, cx, cy) == .Liberty {
+			else {
 				draw_stone(cx, cy, game.nextTile, false)
 			}
 		}
@@ -169,8 +181,13 @@ handle_input::proc() {
 }
 
 play_random_click::proc() {
-	rand := rand.int31() % 4
+	rand := rand.int31() % len(stoneSounds)
 	rl.PlaySound(stoneSounds[rand])
+}
+
+play_random_capture :: proc() {
+	rand := rand.int31() % len(captureSounds)
+	rl.PlaySound(captureSounds[rand])
 }
 
 draw_stone::proc(x, y: Coord, tile : GoTile, opaque: bool) {

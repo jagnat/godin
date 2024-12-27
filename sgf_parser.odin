@@ -120,7 +120,7 @@ parse_sequence :: proc(parse: ^SgfParseContext) -> (node: ^GameNode, err: ParseE
 }
 
 parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError) {
-	ret = gamenode_new(parse)
+	ret = gamenode_new(parse.game)
 	properties : [dynamic]SgfProperty = make([dynamic]SgfProperty, allocator=context.temp_allocator)
 	match_char(parse, ';') or_return
 	skip_whitespace(parse) or_return
@@ -334,11 +334,6 @@ skip_whitespace :: proc(parse: ^SgfParseContext) -> ParseError {
 			return .None
 		}
 	}
-}
-
-gamenode_new :: proc(parse: ^SgfParseContext) -> ^GameNode {
-	ptr := new(GameNode, allocator = parse.game.alloc)
-	return ptr
 }
 
 print_sgf :: proc(node: ^GameNode) {
