@@ -29,8 +29,6 @@ HEIGHT : i32 = 768
 
 tx : Homothetic
 
-nextTile : GoTile = .Black
-
 boardX : f32
 boardY : f32
 
@@ -72,8 +70,6 @@ main :: proc() {
 
 	init()
 	defer cleanup()
-
-	// defer delete(board)
 
 	for !rl.WindowShouldClose() {
 
@@ -147,14 +143,16 @@ handle_input::proc() {
 	cx, cy := Coord(math.round_f32(stone_pos.x)), Coord(math.round_f32(stone_pos.y))
 
 	if cx >= 0 && cx < game.boardSize && cy >= 0 && cy < game.boardSize {
-		if (get_tile(game, cx, cy) != .Empty) { return }
-		if rl.IsMouseButtonPressed(.LEFT) {
-			set_tile(game, cx, cy, nextTile)
-			play_random_click()
-			nextTile = .Black if nextTile == .White else .White
-		}
-		else if get_tile(game, cx, cy) == .Empty {
-			draw_stone(cx, cy, nextTile, false)
+
+		if can_move(game, Position{cx, cy}) {
+			if rl.IsMouseButtonPressed(.LEFT) {
+				set_tile(game, cx, cy, game.nextTile)
+				play_random_click()
+				game.nextTile = .Black if game.nextTile == .White else .White
+			}
+			else if get_tile(game, cx, cy) == .Liberty {
+				draw_stone(cx, cy, game.nextTile, false)
+			}
 		}
 	}
 
@@ -177,7 +175,7 @@ play_random_click::proc() {
 
 draw_stone::proc(x, y: Coord, tile : GoTile, opaque: bool) {
 	pos := stone_to_px({f32(x), f32(y)})
-	if tile == .Empty { return }
+	if tile == .Liberty || tile == .None { return }
 	hex : u32 = 0xFFFFFF00 if tile == .White else 0x00000000
 	hex += 0x000000FF if opaque else 0x00000088
 	rl.DrawCircleV(pos, tx.scaleX / 2, rl.GetColor(hex))
@@ -201,7 +199,7 @@ draw_stones :: proc() {
 	for j in 0..<game.boardSize {
 		for i in 0..<game.boardSize {
 			stone := get_tile(game, i, j)
-			if stone == .Empty { continue }
+			if stone == .Liberty || stone == .None { continue }
 			draw_stone(Coord(i), Coord(j), stone, true)
 		}
 	}

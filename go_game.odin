@@ -5,9 +5,10 @@ import "core:mem"
 import "core:fmt"
 
 GoTile :: enum u8 {
-	Empty,
+	Liberty,
 	White,
-	Black
+	Black,
+	None, // Returned by out of bounds check (to not count as liberty)
 }
 
 MoveType :: enum u8 {
@@ -57,8 +58,10 @@ GoGame :: struct {
 	whiteCaptures: i32,
 	blackCaptures: i32,
 	komi: f32,
-	turnColor: GoTile
+	nextTile: GoTile
 }
+
+@private Neighbors : []Position : {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
 
 init_game :: proc (game : ^GoGame, boardSize : Coord = 19, generateHeadNode : bool = true) {
 
@@ -73,7 +76,7 @@ init_game :: proc (game : ^GoGame, boardSize : Coord = 19, generateHeadNode : bo
 		game.headNode = new(GameNode, allocator=game.alloc)
 	}
 	game.capturePool = make([dynamic]Position, CapturePoolSize, allocator=game.alloc)
-	game.turnColor = .Black
+	game.nextTile = .Black
 }
 
 get_tile_pos :: proc(game : ^GoGame, pos : Position) -> GoTile {
@@ -81,7 +84,7 @@ get_tile_pos :: proc(game : ^GoGame, pos : Position) -> GoTile {
 }
 
 get_tile_coords :: proc (game: ^GoGame, cx, cy : Coord) -> GoTile {
-	if cy * game.boardSize + cx >= game.boardSize * game.boardSize do return .Empty
+	if cx < 0 || cx >= game.boardSize || cy < 0 || cy >= game.boardSize do return .None
 	return game.board[cy * game.boardSize + cx]
 }
 
@@ -95,7 +98,7 @@ set_tile_pos :: proc(game : ^GoGame, pos : Position, tile : GoTile) {
 }
 
 set_tile_coords :: proc(game : ^GoGame, cx, cy : Coord, tile : GoTile) {
-	if cy * game.boardSize + cx >= game.boardSize * game.boardSize do return
+	if cx < 0 || cx >= game.boardSize || cy < 0 || cy >= game.boardSize do return
 	game.board[cy * game.boardSize + cx] = tile
 }
 
@@ -106,7 +109,7 @@ set_tile :: proc {
 
 clear_board :: proc(game : ^GoGame) {
 	for i in 0..<(game.boardSize * game.boardSize) {
-		game.board[i] = .Empty
+		game.board[i] = .Liberty
 	}
 }
 
@@ -127,8 +130,32 @@ advance :: proc(game : ^GoGame) {
 	game.currentPosition = node
 }
 
-can_move :: proc(game : ^GoGame, pos: Position) {
-	
+can_move :: proc(game : ^GoGame, pos: Position) -> bool {
+	if get_tile(game, pos) != .Liberty do return false
+
+	// Early exit, check if you have a liberty
+	for add in Neighbors {
+		neighbor := add + pos
+		tile := get_tile(game, neighbor)
+		if tile == .Liberty do return true
+	}
+
+	// Otherwise check groups neighboring
+	for add in Neighbors {
+		neighbor := add + pos
+		tile := get_tile(game, neighbor)
+		if tile != .Liberty && tile != .None {
+			_, liberties := get_stone_group(game, neighbor)
+			if tile != game.nextTile && len(liberties) <= 1 { // You will capture a group
+				return true
+			}
+			else if tile == game.nextTile && len(liberties) > 1 { // Connected to a group with a liberty besides this
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 do_move :: proc(game : ^GoGame, pos : Position) {
@@ -137,4 +164,34 @@ do_move :: proc(game : ^GoGame, pos : Position) {
 
 undo_move :: proc(game: ^GoGame) {
 
+}
+
+get_stone_group :: proc(game : ^GoGame, pos : Position) -> (stones, liberties : []Position) {
+	tile := get_tile(game, pos)
+	if tile == .Liberty || tile == .None {
+		return nil, nil
+	}
+
+	markedStones := make([dynamic]Position, 0, 30, allocator=context.temp_allocator)
+	markedLiberties := make([dynamic]Position, 0, 30, allocator=context.temp_allocator)
+	scanStack := make([dynamic]Position, 0, 30, allocator=context.temp_allocator)
+	append(&scanStack, pos)
+
+	for len(scanStack) != 0 {
+		currentPos := pop(&scanStack)
+
+		append(&markedStones, currentPos)
+
+		for add in Neighbors {
+			neighborPos := add + currentPos
+			neighborTile := get_tile(game, neighborPos)
+			if neighborTile == .Liberty && !slice_contains(markedLiberties[:], neighborPos) {
+				append(&markedLiberties, neighborPos)
+			} else if neighborTile == tile && !slice_contains(markedStones[:], neighborPos) {
+				append(&scanStack, neighborPos)
+			}
+		}
+	}
+
+	return markedStones[:], markedLiberties[:]
 }

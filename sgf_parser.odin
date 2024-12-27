@@ -151,7 +151,7 @@ parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError)
 				foundMove = true
 			}
 			case "AB", "AW", "AE": {
-				tile : GoTile = .Black if str.contains(prop.id, "AB") else (.White if str.contains(prop.id, "AW") else .Empty)
+				tile : GoTile = .Black if str.contains(prop.id, "AB") else (.White if str.contains(prop.id, "AW") else .Liberty)
 				for val in prop.values {
 					p := pos_from_value(val) or_return
 					append(&setupPoints, SetupStone{p, tile})
@@ -365,7 +365,7 @@ print_sgf_recurse :: proc(node: ^GameNode, prefix: ^str.Builder, last: bool) {
 		str.write_string(prefix, "| ")
 	}
 
-	if node.tile != .Empty {
+	if node.tile != .Liberty {
 		col := "W " if node.tile == .White else "B "
 		if node.pos.x == -1 && node.pos.y == -1 {
 			fmt.println(col, "passes", sep="")
