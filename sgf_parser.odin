@@ -5,6 +5,7 @@ import str "core:strings"
 import "core:io"
 import "core:fmt"
 import "core:mem"
+import "core:strconv"
 
 SgfParseContext :: struct {
 	game: ^GoGame,
@@ -159,6 +160,20 @@ parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError)
 			}
 			case "C": {
 				ret.comment = prop.values[0]
+			}
+			case "KM": {
+				komi, ok := strconv.parse_f32(prop.values[0])
+				if !ok {
+					return ret, .ValueError
+				}
+				parse.game.komi = komi
+			}
+			case "SZ": {
+				size, ok := strconv.parse_int(prop.values[0])
+				if !ok {
+					return ret, .ValueError
+				}
+				parse.game.boardSize = Coord(size)
 			}
 			case: break
 		}

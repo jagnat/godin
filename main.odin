@@ -35,6 +35,11 @@ boardY : f32
 stoneSounds : [4]rl.Sound
 captureSounds : [2]rl.Sound
 
+hoshi_19 : []rl.Vector2 : {{3, 3}, {3, 9}, {3, 15}, {9, 3}, {9, 9}, {9, 15}, {15, 3}, {15, 9}, {15, 15}}
+hoshi_13 : []rl.Vector2 : {{3, 3}, {3, 9}, {9, 3}, {9, 9}, {6, 6}}
+hoshi_9  : []rl.Vector2 : {{2, 2}, {2, 6}, {6, 2}, {6, 6}, {4, 4}}
+
+@private
 game : ^GoGame
 
 main :: proc() {
@@ -114,8 +119,8 @@ init :: proc() {
 	for s in captureSounds {
 		rl.SetSoundVolume(s, 0.6)
 	}
-	// node := parse_from_file("test.sgf")
-	game = parse_from_file("5265-yly-TheCaptain-Vegetarian.sgf")
+	// node := parse_from_file("sgfs/test.sgf")
+	game = parse_from_file("sgfs/test_9x9.sgf")
 	// game = new(GoGame)
 	// init_game(game)
 	// print_sgf(node)
@@ -244,14 +249,19 @@ draw_board :: proc() {
 	}
 
 	// Draw hoshi
-	// Hardcode for now
-	hoshi_19 := []f32{3, 9, 15}
-	if (game.boardSize == 19) {
-		for i in hoshi_19 {
-			for j in hoshi_19 {
-				p := stone_to_px({i, j})
-				rl.DrawCircleV(p, 5.5, rl.BLACK)
-			}
-		}
+	hoshi_list : []rl.Vector2 = {}
+	switch game.boardSize {
+		case 19:
+			hoshi_list = hoshi_19
+		case 13:
+			hoshi_list = hoshi_13
+		case 9:
+			hoshi_list = hoshi_9
+		case: break
+	}
+
+	for p in hoshi_list {
+		p2 := stone_to_px(p)
+		rl.DrawCircleV(p2, 5.5, rl.BLACK)
 	}
 }
