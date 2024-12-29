@@ -277,18 +277,6 @@ parse_property_value :: proc(parse: ^SgfParseContext) -> (s: string, err: ParseE
 	return str.to_string(propBuilder), .None
 }
 
-add_child_node :: proc(parent, child: ^GameNode) {
-	if parent.children == nil {
-		parent.children = child
-	} else {
-		lastChild := parent.children
-		for lastChild.siblingNext != nil {
-			lastChild = lastChild.siblingNext
-		}
-		lastChild.siblingNext = child
-	}
-}
-
 get_child_count :: proc(parent: ^GameNode) -> i64 {
 	if parent.children == nil { return 0 }
 

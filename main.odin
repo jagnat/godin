@@ -150,7 +150,7 @@ cleanup :: proc() {
 	free(game)
 }
 
-handle_input::proc() {
+handle_input :: proc() {
 	pos := rl.GetMousePosition()
 
 	stone_pos := px_to_stone(pos)
@@ -176,7 +176,9 @@ handle_input::proc() {
 	mouseMove := rl.GetMouseWheelMove()
 	if abs(mouseMove) > 0.001 {
 		if mouseMove < 1 {
-			advance(game)
+			move_forward(game)
+		} else {
+			move_backward(game)
 		}
 	}
 
@@ -185,7 +187,7 @@ handle_input::proc() {
 	}
 }
 
-play_random_click::proc() {
+play_random_click :: proc() {
 	rand := rand.int31() % len(stoneSounds)
 	rl.PlaySound(stoneSounds[rand])
 }
@@ -195,7 +197,7 @@ play_random_capture :: proc() {
 	rl.PlaySound(captureSounds[rand])
 }
 
-draw_stone::proc(x, y: Coord, tile : GoTile, opaque: bool) {
+draw_stone :: proc(x, y: Coord, tile : GoTile, opaque: bool) {
 	pos := stone_to_px({f32(x), f32(y)})
 	if tile == .Liberty || tile == .None { return }
 	hex : u32 = 0xFFFFFF00 if tile == .White else 0x00000000
@@ -203,14 +205,14 @@ draw_stone::proc(x, y: Coord, tile : GoTile, opaque: bool) {
 	rl.DrawCircleV(pos, tx.scaleX / 2, rl.GetColor(hex))
 }
 
-stone_to_px::proc(a: rl.Vector2) -> rl.Vector2 {
+stone_to_px :: proc(a: rl.Vector2) -> rl.Vector2 {
 	ret : rl.Vector2
 	ret.x = tx.translateX + a.x * tx.scaleX
 	ret.y = tx.translateY + a.y * tx.scaleY
 	return ret
 }
 
-px_to_stone::proc(a: rl.Vector2) -> rl.Vector2 {
+px_to_stone :: proc(a: rl.Vector2) -> rl.Vector2 {
 	ret : rl.Vector2
 	ret.x = (a.x - tx.translateX) / tx.scaleX
 	ret.y = (a.y - tx.translateY) / tx.scaleY
