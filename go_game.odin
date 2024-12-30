@@ -118,7 +118,7 @@ get_child_at :: proc(gameNode : ^GameNode, idx : int) -> ^GameNode {
 	currentChild := gameNode.children
 	if currentChild == nil do return nil
 
-	for i := idx; i > 1; i -= 1 {
+	for i := idx; i > 0; i -= 1 {
 		currentChild = currentChild.siblingNext
 		if currentChild == nil do return nil
 	}
@@ -146,11 +146,42 @@ move_forward :: proc(game : ^GoGame, childIndex : int = 0) {
 
 	if node == nil do return
 
-	#partial switch node.moveType {
+	switch node.moveType {
+		case .None:
 		case .Move:
+			captureStackPos := game.capturePoolIdx
+			game.nextTile = other_tile_type(game.nextTile)
+
+			// Check for captures
+			for add in Neighbors {
+				neighbor := add + node.pos
+				tile := get_tile(game, neighbor)
+
+				if tile == other_tile_type(node.tile) {
+					stones, liberties := get_stone_group(game, neighbor)
+
+					if len(liberties) == 1 { // Capture
+						captureSize := len(stones)
+						node.captures = game.capturePool[captureStackPos:captureStackPos + captureSize]
+						captureStackPos += captureSize
+						copy_slice(node.captures, stones[:])
+
+						if game.nextTile == .Black {
+							game.blackCaptures += captureSize
+						} else {
+							game.whiteCaptures += captureSize
+						}
+
+						remove_stones(game, stones)
+					}
+				}
+			}
 			set_tile(game, node.pos, node.tile)
+		case .Pass:
+		case .Resign:
 		case: break
 	}
+
 	game.currentPosition = node
 }
 
@@ -225,42 +256,12 @@ do_move :: proc(game : ^GoGame, pos : Position) -> (captured: bool) {
 
 	// Add node to thingy
 	oldNode := game.currentPosition
-	add_child_node(oldNode, node)
+	idx := add_child_node(oldNode, node)
+	fmt.println("idx:", idx)
 
-	captureStackPos := game.capturePoolIdx
-	game.nextTile = other_tile_type(game.nextTile)
+	move_forward(game, idx)
 
-	// Check for captures
-	for add in Neighbors {
-		neighbor := add + pos
-		tile := get_tile(game, neighbor)
-
-		if tile == other_tile_type(game.nextTile) {
-			stones, liberties := get_stone_group(game, neighbor)
-
-			if len(liberties) == 1 { // Capture
-				captured = true
-				captureSize := len(stones)
-				node.captures = game.capturePool[captureStackPos:captureStackPos + captureSize]
-				captureStackPos += captureSize
-				copy_slice(node.captures, stones[:])
-
-				if game.nextTile == .Black {
-					game.blackCaptures += captureSize
-				} else {
-					game.whiteCaptures += captureSize
-				}
-
-				remove_stones(game, stones)
-			}
-		}
-	}
-
-	set_tile(game, pos, game.nextTile)
-
-	game.currentPosition = node
-
-	return
+	return len(node.captures) > 0
 }
 
 get_stone_group :: proc(game : ^GoGame, pos : Position) -> (stones, liberties : []Position) {
@@ -293,15 +294,19 @@ get_stone_group :: proc(game : ^GoGame, pos : Position) -> (stones, liberties : 
 	return markedStones[:], markedLiberties[:]
 }
 
-add_child_node :: proc(parent, child: ^GameNode) {
+add_child_node :: proc(parent, child: ^GameNode) -> (idx: int) {
+	idx = 0
 	if parent.children == nil {
 		parent.children = child
 	} else {
 		lastChild := parent.children
+		idx += 1
 		for lastChild.siblingNext != nil {
 			lastChild = lastChild.siblingNext
+			idx += 1
 		}
 		lastChild.siblingNext = child
 	}
 	child.parent = parent
+	return idx
 }
