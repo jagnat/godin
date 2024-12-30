@@ -149,8 +149,10 @@ move_forward :: proc(game : ^GoGame, childIndex : int = 0) {
 	switch node.moveType {
 		case .None:
 		case .Move:
-			captureStackPos := game.capturePoolIdx
 			game.nextTile = other_tile_type(game.nextTile)
+
+			startStack := game.capturePoolIdx
+			endStack := game.capturePoolIdx
 
 			// Check for captures
 			for add in Neighbors {
@@ -162,20 +164,25 @@ move_forward :: proc(game : ^GoGame, childIndex : int = 0) {
 
 					if len(liberties) == 1 { // Capture
 						captureSize := len(stones)
-						node.captures = game.capturePool[captureStackPos:captureStackPos + captureSize]
-						captureStackPos += captureSize
-						copy_slice(node.captures, stones[:])
+						endStack = game.capturePoolIdx + captureSize
+						captures := game.capturePool[game.capturePoolIdx:endStack]
+						game.capturePoolIdx = endStack
+						copy_slice(captures, stones[:])
 
 						if game.nextTile == .Black {
 							game.blackCaptures += captureSize
 						} else {
 							game.whiteCaptures += captureSize
 						}
-
-						remove_stones(game, stones)
 					}
 				}
 			}
+
+			if startStack != endStack {
+				node.captures = game.capturePool[startStack : endStack]
+				remove_stones(game, node.captures)
+			}
+
 			set_tile(game, node.pos, node.tile)
 		case .Pass:
 		case .Resign:
@@ -193,6 +200,13 @@ move_backward :: proc(game: ^GoGame) {
 	if currentNode.moveType == .Move {
 		set_tile(game, currentNode.pos, .Liberty)
 		add_stones(game, currentNode.captures, other_tile_type(currentNode.tile))
+		if currentNode.tile == .Black {
+			game.whiteCaptures -= len(currentNode.captures)
+		} else {
+			game.blackCaptures -= len(currentNode.captures)
+		}
+		game.capturePoolIdx -= len(currentNode.captures)
+		currentNode.captures = {}
 	}
 
 	game.nextTile = currentNode.tile

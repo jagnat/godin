@@ -3,7 +3,7 @@ package godin
 import "base:runtime"
 import "core:fmt"
 import "core:time"
-import "core:strings"
+import str "core:strings"
 import rl "vendor:raylib"
 import "core:math"
 import "core:math/rand"
@@ -98,6 +98,15 @@ main :: proc() {
 
 		rl.DrawFPS(10, 10)
 
+		scorePrint: str.Builder
+		str.builder_init(&scorePrint, allocator=context.temp_allocator)
+		str.write_string(&scorePrint, "Black: ")
+		str.write_int(&scorePrint, game.blackCaptures)
+		str.write_string(&scorePrint, ", White: ")
+		str.write_int(&scorePrint, game.whiteCaptures)
+
+		rl.DrawText(str.to_cstring(&scorePrint), 10, 30, 20, rl.WHITE)
+
 		free_all(context.temp_allocator)
 	}
 }
@@ -120,6 +129,7 @@ init :: proc() {
 		rl.SetSoundVolume(s, 0.6)
 	}
 	// node := parse_from_file("sgfs/test.sgf")
+	// game = parse_from_file("sgfs/5265-yly-TheCaptain-Vegetarian.sgf")
 	game = parse_from_file("sgfs/test_9x9.sgf")
 	// game = new(GoGame)
 	// init_game(game)
