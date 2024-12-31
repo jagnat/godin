@@ -96,6 +96,8 @@ main :: proc() {
 
 		draw_stones()
 
+		draw_last_move()
+
 		rl.DrawFPS(10, 10)
 
 		scorePrint: str.Builder
@@ -130,9 +132,9 @@ init :: proc() {
 	}
 	// node := parse_from_file("sgfs/test.sgf")
 	// game = parse_from_file("sgfs/5265-yly-TheCaptain-Vegetarian.sgf")
-	game = parse_from_file("sgfs/test_9x9.sgf")
-	// game = new(GoGame)
-	// init_game(game)
+	// game = parse_from_file("sgfs/test_9x9.sgf")
+	game = new(GoGame)
+	init_game(game)
 	// print_sgf(node)
 
 	init_transform()
@@ -237,6 +239,18 @@ draw_stones :: proc() {
 			draw_stone(Coord(i), Coord(j), stone, true)
 		}
 	}
+}
+
+draw_last_move :: proc() {
+	if game.currentPosition == nil do return
+	if game.currentPosition.moveType != .Move do return
+
+	pos := game.currentPosition.pos
+	tile := game.currentPosition.tile
+
+	p := stone_to_px({f32(pos.x), f32(pos.y)})
+	hex : u32 = 0x000000AA if tile == .White else 0xFFFFFFAA
+	rl.DrawCircleV(p, tx.scaleX / 8, rl.GetColor(hex))
 }
 
 draw_board :: proc() {

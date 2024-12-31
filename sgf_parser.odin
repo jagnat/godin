@@ -56,6 +56,7 @@ parse :: proc(sgf : string) -> ^GoGame {
 		return nil
 	}
 	game.headNode = node
+	game.currentPosition = node
 
 	free_all(context.temp_allocator)
 

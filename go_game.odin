@@ -138,8 +138,6 @@ gamenode_new :: proc(game: ^GoGame) -> ^GameNode {
 }
 
 move_forward :: proc(game : ^GoGame, childIndex : int = 0) {
-	if game.currentPosition == nil do game.currentPosition = game.headNode
-
 	if game.currentPosition == nil do return
 
 	node := get_child_at(game.currentPosition, childIndex)
@@ -194,6 +192,7 @@ move_forward :: proc(game : ^GoGame, childIndex : int = 0) {
 
 move_backward :: proc(game: ^GoGame) {
 	currentNode := game.currentPosition
+	if currentNode == nil do return
 	prevNode := currentNode.parent
 	if prevNode == nil do return
 
