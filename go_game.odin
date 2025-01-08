@@ -270,7 +270,6 @@ do_move :: proc(game : ^GoGame, pos : Position) -> (captured: bool) {
 	// Add node to thingy
 	oldNode := game.currentPosition
 	idx := add_child_node(oldNode, node)
-	fmt.println("idx:", idx)
 
 	move_forward(game, idx)
 
