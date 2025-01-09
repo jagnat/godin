@@ -244,6 +244,14 @@ can_move :: proc(game : ^GoGame, pos: Position) -> bool {
 		if tile != .Liberty && tile != .None {
 			_, liberties := get_stone_group(game, neighbor)
 			if tile != game.nextTile && len(liberties) <= 1 { // You will capture a group
+
+				// Ko check
+				if game.currentPosition.moveType == .Move &&
+					len(game.currentPosition.captures) == 1 &&
+					game.currentPosition.captures[0] == pos {
+					return false
+				}
+				
 				return true
 			}
 			else if tile == game.nextTile && len(liberties) > 1 { // Connected to a group with a liberty besides this
