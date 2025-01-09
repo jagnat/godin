@@ -10,7 +10,7 @@ import "core:math/rand"
 import "core:mem"
 
 // pixel margin of board from edge of screen
-BOARD_MARGIN :: 20
+BOARD_MARGIN :: 12
 
 // board space - 0, 0 in top left corner,
 // 18,18 in bottom right corner
@@ -52,7 +52,7 @@ cornerLineCoords: rl.Rectangle
 sideLineCoords: rl.Rectangle
 hoshiLineCoords: rl.Rectangle
 
-@private
+@(private="file")
 game : ^GoGame
 
 pixelRender : PixelGoRender
@@ -84,7 +84,7 @@ main :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
 	rl.SetTraceLogLevel(.ERROR)
 
-	rl.InitWindow(WIDTH, HEIGHT, "Go")
+	rl.InitWindow(WIDTH, HEIGHT, "Bamboo Joint")
 	defer rl.CloseWindow()
 
 	rl.InitAudioDevice()
@@ -104,17 +104,17 @@ main :: proc() {
 		defer rl.EndDrawing()
 
 		rl.ClearBackground(rl.GetColor(0x1b191cFF))
+
+		handle_input()
 		
 		// draw_board()
 
-		pixel_render_board(&pixelRender)
+		pixel_render_board(game, &pixelRender)
 		draw_pixel_render()
-
-		handle_input()
 
 		// draw_stones()
 
-		draw_last_move()
+		// draw_last_move()
 
 		rl.DrawFPS(10, 10)
 
@@ -147,7 +147,7 @@ init :: proc() {
 	blackMarkerTexCoords = rl.Rectangle{0, 12, 12, 12}
 	whiteMarkerTexCoords = rl.Rectangle{12, 12, 12, 12}
 
-	// Flipped for gl?
+	// Render with -height to flip again
 	boardAtlas = rl_tex_from_memory(#load("resource/board-atlas.png"))
 
 	for s in stoneSounds {
@@ -164,19 +164,37 @@ init :: proc() {
 	init_game(game)
 	// print_sgf(node)
 
-	pixel_init(&pixelRender)
+	pixel_init(game, &pixelRender)
 
-	// img := rl.LoadImageFromTexture(pixelRender.target.texture)
-	// res := rl.ExportImage(img, "test.png")
-	// assert(res == true)
+	when false {
+		img := rl.LoadImageFromTexture(pixelRender.target.texture)
+		rl.ImageFlipVertical(&img)
+		res := rl.ExportImage(img, "test.png")
+		assert(res == true)
+	}
 
 	init_transform()
 }
 
 init_transform :: proc() {
-	board_pix : f32 = f32(WIDTH if WIDTH < HEIGHT else HEIGHT) - 2 * BOARD_MARGIN
+	board_pix_max : f32 = f32(WIDTH if WIDTH < HEIGHT else HEIGHT) - 2 * BOARD_MARGIN
 	boardPixX: f32
 	boardPixY: f32
+
+	multiples_of_pixelraster : [5]f32
+
+	for i in 0..<5 {
+		multiples_of_pixelraster[i] = f32((i+1) * int(pixelRender.target.texture.width))
+	}
+
+	board_pix := board_pix_max
+
+	#reverse for dim in multiples_of_pixelraster {
+		if dim < board_pix_max {
+			board_pix = dim
+			break
+		}
+	}
 
 	if WIDTH < HEIGHT {
 
@@ -201,6 +219,8 @@ handle_input :: proc() {
 	stone_pos := px_to_stone(pos)
 	cx, cy := Coord(math.round_f32(stone_pos.x)), Coord(math.round_f32(stone_pos.y))
 
+	game.hoverPos = Position{-1, -1}
+
 	if cx >= 0 && cx < game.boardSize && cy >= 0 && cy < game.boardSize {
 
 		if can_move(game, Position{cx, cy}) {
@@ -213,7 +233,7 @@ handle_input :: proc() {
 				}
 			}
 			else {
-				draw_stone_tex(cx, cy, game.nextTile, false)
+				game.hoverPos = Position{cx, cy}
 			}
 		}
 	}
@@ -242,24 +262,6 @@ play_random_capture :: proc() {
 	rl.PlaySound(captureSounds[rand])
 }
 
-draw_stone :: proc(x, y: Coord, tile : GoTile, opaque: bool) {
-	if tile == .Liberty || tile == .None { return }
-	pos := stone_to_px({f32(x), f32(y)})
-	hex : u32 = 0xFFFFFF00 if tile == .White else 0x00000000
-	hex += 0x000000FF if opaque else 0x00000088
-	rl.DrawCircleV(pos, tx.scaleX / 2, rl.GetColor(hex))
-}
-
-draw_stone_tex :: proc(x, y: Coord, tile: GoTile, opaque: bool) {
-	if tile == .Liberty || tile == .None { return }
-	pos := stone_to_px({f32(x), f32(y)})
-	hex : u32 = 0xFFFFFF00
-	hex += 0x000000FF if opaque else 0x00000088
-	// rl.DrawCircleV(pos, tx.scaleX / 2, rl.GetColor(hex))
-	texRect := whiteStoneTexCoords if tile == .White else blackStoneTexCoords
-	rl.DrawTexturePro(stoneAtlas, texRect, rl.Rectangle{pos.x, pos.y, tx.scaleX, tx.scaleX}, {tx.scaleX/2, tx.scaleX/2}, 0, rl.GetColor(hex))
-}
-
 stone_to_px :: proc(a: rl.Vector2) -> rl.Vector2 {
 	ret : rl.Vector2
 	ret.x = tx.translateX + a.x * tx.scaleX
@@ -274,30 +276,6 @@ px_to_stone :: proc(a: rl.Vector2) -> rl.Vector2 {
 	return ret
 }
 
-draw_stones :: proc() {
-	for j in 0..<game.boardSize {
-		for i in 0..<game.boardSize {
-			stone := get_tile(game, i, j)
-			if stone == .Liberty || stone == .None { continue }
-			draw_stone_tex(Coord(i), Coord(j), stone, true)
-		}
-	}
-}
-
-draw_last_move :: proc() {
-	if game.currentPosition == nil do return
-	if game.currentPosition.moveType != .Move do return
-
-	pos := game.currentPosition.pos
-	tile := game.currentPosition.tile
-
-	p := stone_to_px({f32(pos.x), f32(pos.y)})
-	hex : u32 = 0x000000FF if tile == .White else 0xFFFFFFFF
-	// texRect := whiteMarkerTexCoords if tile == .White else blackMarkerTexCoords
-	// rl.DrawTexturePro(stoneAtlas, texRect, rl.Rectangle{p.x, p.y, tx.scaleX, tx.scaleX}, {tx.scaleX/2, tx.scaleX/2}, 0, rl.GetColor(hex))
-	rl.DrawCircleV(p, tx.scaleX / 8, rl.GetColor(hex))
-}
-
 draw_pixel_render :: proc() {
 	boardOrigin := stone_to_px({-0.5, -0.5})
 	bs := f32(game.boardSize)
@@ -306,45 +284,5 @@ draw_pixel_render :: proc() {
 
 	sourceRect := rl.Rectangle{0, 0, f32(pixelRender.target.texture.width), f32(-pixelRender.target.texture.height)}
 
-	// rl.DrawRectangleV(boardOrigin, stone_to_px({bs - 0.5, bs - 0.5}) - boardOrigin, rl.GetColor(0xad8d40FF))
 	rl.DrawTexturePro(pixelRender.target.texture, sourceRect, destRect, {}, 0, rl.WHITE)
-}
-
-draw_board :: proc() {
-	boardOrigin := stone_to_px({-0.5, -0.5})
-	bs := f32(game.boardSize)
-
-	rl.DrawRectangleV(boardOrigin, stone_to_px({bs - 0.5, bs - 0.5}) - boardOrigin, rl.GetColor(0xad8d40FF))
-
-	orig := stone_to_px({})
-	end := stone_to_px({bs - 1, bs - 1})
-
-	// Draw lines
-	for i in 0..<bs {
-
-		STROKE :: 2
-
-		// Vert
-		p := stone_to_px({f32(i), f32(i)})
-		rl.DrawLineEx({p.x, end.y}, {p.x, orig.y}, STROKE, rl.BLACK)
-		// Horiz
-		rl.DrawLineEx({end.x, p.y}, {orig.x, p.y}, STROKE, rl.BLACK)
-	}
-
-	// Draw hoshi
-	hoshi_list : []rl.Vector2 = {}
-	switch game.boardSize {
-		case 19:
-			hoshi_list = hoshi_19
-		case 13:
-			hoshi_list = hoshi_13
-		case 9:
-			hoshi_list = hoshi_9
-		case: break
-	}
-
-	for p in hoshi_list {
-		p2 := stone_to_px(p)
-		rl.DrawCircleV(p2, 5.5, rl.BLACK)
-	}
 }

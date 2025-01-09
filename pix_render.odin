@@ -6,28 +6,27 @@ import rl "vendor:raylib"
 STONE_SIZE_PX :: 12
 TILE_SIZE_PX :: 13
 
-REMAINDER :: 32 - TILE_SIZE_PX * 2
-
 StoneJitter :: struct {
 	x, y: Coord
 }
 
 PixelGoRender :: struct {
 	target: rl.RenderTexture2D,
-	pixOffsets: [dynamic]StoneJitter
+	pixOffsets: [dynamic]StoneJitter,
+	boardSize: Coord,
 }
 
 
-pixel_init :: proc(render: ^PixelGoRender) -> bool {
+pixel_init :: proc(game: ^GoGame, render: ^PixelGoRender) -> bool {
+	render.boardSize = game.boardSize
 	texSize := i32(TILE_SIZE_PX * game.boardSize)
-
 	render.pixOffsets = make([dynamic]StoneJitter, game.boardSize * game.boardSize, 576)
 
 	render.target = rl.LoadRenderTexture(texSize, texSize)
 	return rl.IsRenderTextureValid(render.target)
 }
 
-pixel_render_board :: proc(render: ^PixelGoRender) {
+pixel_render_board :: proc(game: ^GoGame, render: ^PixelGoRender) {
 	bgTexCoords := rl.Rectangle{0, TILE_SIZE_PX,                TILE_SIZE_PX, TILE_SIZE_PX}
 	centerLineCoords := rl.Rectangle{0, 0,                      TILE_SIZE_PX, TILE_SIZE_PX}
 	cornerLineCoords := rl.Rectangle{1 * TILE_SIZE_PX, 0,       TILE_SIZE_PX, TILE_SIZE_PX}
@@ -36,28 +35,28 @@ pixel_render_board :: proc(render: ^PixelGoRender) {
 
 	fullRect := rl.Rectangle{0, 0, f32(render.target.texture.width), f32(render.target.texture.height)}
 
-	maxCoord := game.boardSize - 1
+	maxCoord := render.boardSize - 1
 
 	using rl
 
 	BeginTextureMode(render.target)
 	defer EndTextureMode()
 
-	for j in 0..<game.boardSize {
-		for i in 0..<game.boardSize {
+	for j in 0..<render.boardSize {
+		for i in 0..<render.boardSize {
 			rl.DrawTexturePro(boardAtlas, bgTexCoords, get_tile_rect(i, j), {}, 0, rl.WHITE)
 		}
 	}
 
 	// Grid
-	for j in 1 ..< game.boardSize - 1 {
-		for i in 1 ..< game.boardSize - 1 {
+	for j in 1 ..< render.boardSize - 1 {
+		for i in 1 ..< render.boardSize - 1 {
 			rl.DrawTexturePro(boardAtlas, centerLineCoords, get_tile_rect(i, j), {}, 0, rl.WHITE)
 		}
 	}
 
 	// Side lines
-	for i in 1 ..< game.boardSize - 1 {
+	for i in 1 ..< render.boardSize - 1 {
 		// Top
 		rl.DrawTexturePro(boardAtlas, sideLineCoords, get_tile_rect(i, maxCoord), {}, 0, rl.WHITE)
 		// Bot
@@ -94,7 +93,7 @@ pixel_render_board :: proc(render: ^PixelGoRender) {
 
 	// Hoshi
 	hoshiList :[]rl.Vector2
-	switch game.boardSize {
+	switch render.boardSize {
 		case 19: hoshiList = hoshi_19
 		case 13: hoshiList = hoshi_13
 		case 9: hoshiList = hoshi_9
@@ -105,21 +104,9 @@ pixel_render_board :: proc(render: ^PixelGoRender) {
 		rl.DrawTexturePro(boardAtlas, hoshiLineCoords, rect, {}, 0, rl.WHITE)
 	}
 
-	// Draw a few tiles
-	when false {
-		rect := get_stone_rect(3, 3, 1, 1)
-		rl.DrawTexturePro(stoneAtlas, blackStoneTexCoords, rect, {}, 0, rl.WHITE)
-		rect = get_stone_rect(3, 15)
-		rl.DrawTexturePro(stoneAtlas, blackStoneTexCoords, rect, {}, 0, rl.WHITE)
-		rect = get_stone_rect(15, 3)
-		rl.DrawTexturePro(stoneAtlas, whiteStoneTexCoords, rect, {}, 0, rl.WHITE)
-		rect = get_stone_rect(15, 15)
-		rl.DrawTexturePro(stoneAtlas, whiteStoneTexCoords, rect, {}, 0, rl.WHITE)
-	}
-
-	// Draw board tiles
-	for j in 0..<game.boardSize {
-		for i in 0..<game.boardSize {
+	// Draw board stones
+	for j in 0..<render.boardSize {
+		for i in 0..<render.boardSize {
 			stone := get_tile(game, i, j)
 			if stone == .Liberty || stone == .None {
 				set_tile_jitter(render, i, j, {})
@@ -135,16 +122,35 @@ pixel_render_board :: proc(render: ^PixelGoRender) {
 			rl.DrawTexturePro(stoneAtlas, texCoords, rect, {}, 0, rl.WHITE)
 		}
 	}
+
+	// Draw last stone overlay
+	if game.currentPosition != nil && game.currentPosition.moveType == .Move {
+		pos := game.currentPosition.pos
+		tile := game.currentPosition.tile
+		jitter := get_tile_jitter(render, pos.x, pos.y)
+		rect := get_stone_rect(pos.x, pos.y, jitter.x, jitter.y)
+		texCoords := blackMarkerTexCoords if tile == .Black else whiteMarkerTexCoords
+		rl.DrawTexturePro(stoneAtlas, texCoords, rect, {}, 0, rl.WHITE)
+	}
+
+	// Draw considered move
+	if game.hoverPos.x != -1 && game.hoverPos.y != -1 {
+		texCoords := blackStoneTexCoords if game.nextTile == .Black else whiteStoneTexCoords
+		rect := get_stone_rect(game.hoverPos.x, game.hoverPos.y)
+		rect.x += 1
+		rect.y -= 1
+		rl.DrawTexturePro(stoneAtlas, texCoords, rect, {}, 0, rl.GetColor(0xFFFFFFFF))
+	}
 }
 
 get_tile_jitter :: proc (render: ^PixelGoRender, cx, cy: Coord) -> StoneJitter {
-	if cx < 0 || cx >= game.boardSize || cy < 0 || cy >= game.boardSize do return {}
-	return render.pixOffsets[cy * game.boardSize + cx]
+	if cx < 0 || cx >= render.boardSize || cy < 0 || cy >= render.boardSize do return {}
+	return render.pixOffsets[cy * render.boardSize + cx]
 }
 
 set_tile_jitter :: proc(render: ^PixelGoRender, cx, cy: Coord, jitter: StoneJitter) {
-	if cx < 0 || cx >= game.boardSize || cy < 0 || cy >= game.boardSize do return
-	render.pixOffsets[cy * game.boardSize + cx] = jitter
+	if cx < 0 || cx >= render.boardSize || cy < 0 || cy >= render.boardSize do return
+	render.pixOffsets[cy * render.boardSize + cx] = jitter
 }
 
 get_tile_rect :: proc(i, j: Coord) -> rl.Rectangle {

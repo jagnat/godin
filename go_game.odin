@@ -47,20 +47,22 @@ CapturePoolSize :: 512
 GoGame :: struct {
 
 	// Variables set at init
-	headNode : ^GameNode,
-	arena : vm.Arena,
-	alloc : mem.Allocator,
-	boardSize : Coord,
-	capturePool : [dynamic]Position,
+	headNode: ^GameNode,
+	arena: vm.Arena,
+	alloc: mem.Allocator,
+	boardSize: Coord,
+	capturePool: [dynamic]Position,
 
 	// Variables set relative to current position in the game
-	capturePoolIdx : int,
-	currentPosition : ^GameNode,
-	board : [dynamic]GoTile,
+	capturePoolIdx: int,
+	currentPosition: ^GameNode,
+	board: [dynamic]GoTile,
 	whiteCaptures: int,
 	blackCaptures: int,
 	komi: f32,
-	nextTile: GoTile
+	nextTile: GoTile,
+
+	hoverPos: Position
 }
 
 @private Neighbors : []Position : {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
