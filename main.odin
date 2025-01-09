@@ -46,11 +46,6 @@ blackMarkerTexCoords: rl.Rectangle
 whiteMarkerTexCoords: rl.Rectangle
 
 boardAtlas: rl.Texture2D
-bgTexCoords: rl.Rectangle
-centerLineCoords: rl.Rectangle
-cornerLineCoords: rl.Rectangle
-sideLineCoords: rl.Rectangle
-hoshiLineCoords: rl.Rectangle
 
 @(private="file")
 game : ^GoGame

@@ -27,11 +27,12 @@ pixel_init :: proc(game: ^GoGame, render: ^PixelGoRender) -> bool {
 }
 
 pixel_render_board :: proc(game: ^GoGame, render: ^PixelGoRender) {
-	bgTexCoords := rl.Rectangle{0, TILE_SIZE_PX,                TILE_SIZE_PX, TILE_SIZE_PX}
-	centerLineCoords := rl.Rectangle{0, 0,                      TILE_SIZE_PX, TILE_SIZE_PX}
-	cornerLineCoords := rl.Rectangle{1 * TILE_SIZE_PX, 0,       TILE_SIZE_PX, TILE_SIZE_PX}
-	sideLineCoords := rl.Rectangle{2 * TILE_SIZE_PX, 0,         TILE_SIZE_PX, TILE_SIZE_PX}
-	hoshiLineCoords := rl.Rectangle{3 * TILE_SIZE_PX, 0,        TILE_SIZE_PX, TILE_SIZE_PX}
+	bgTexCoords := rl.Rectangle{0, TILE_SIZE_PX,                 TILE_SIZE_PX, TILE_SIZE_PX}
+	centerLineCoords := rl.Rectangle{0, 0,                       TILE_SIZE_PX, TILE_SIZE_PX}
+	cornerLineCoords := rl.Rectangle{1 * TILE_SIZE_PX, 0,        TILE_SIZE_PX, TILE_SIZE_PX}
+	sideLineCoords := rl.Rectangle{2 * TILE_SIZE_PX, 0,          TILE_SIZE_PX, TILE_SIZE_PX}
+	hoshiLineCoords := rl.Rectangle{3 * TILE_SIZE_PX, 0,         TILE_SIZE_PX, TILE_SIZE_PX}
+	shadowCoords := rl.Rectangle{3 * TILE_SIZE_PX, TILE_SIZE_PX, TILE_SIZE_PX, TILE_SIZE_PX}
 
 	fullRect := rl.Rectangle{0, 0, f32(render.target.texture.width), f32(render.target.texture.height)}
 
@@ -135,10 +136,12 @@ pixel_render_board :: proc(game: ^GoGame, render: ^PixelGoRender) {
 
 	// Draw considered move
 	if game.hoverPos.x != -1 && game.hoverPos.y != -1 {
+		tileRect := get_tile_rect(game.hoverPos.x, game.hoverPos.y)
+		rl.DrawTexturePro(boardAtlas, shadowCoords, tileRect, {}, 0, rl.WHITE)
 		texCoords := blackStoneTexCoords if game.nextTile == .Black else whiteStoneTexCoords
 		rect := get_stone_rect(game.hoverPos.x, game.hoverPos.y)
-		rect.x += 1
-		rect.y -= 1
+		rect.x += 3
+		rect.y -= 2
 		rl.DrawTexturePro(stoneAtlas, texCoords, rect, {}, 0, rl.GetColor(0xFFFFFFFF))
 	}
 }
