@@ -4,6 +4,7 @@ import "base:runtime"
 import "core:fmt"
 import "core:time"
 import str "core:strings"
+import "core:strconv"
 import rl "vendor:raylib"
 import "core:math"
 import "core:math/rand"
@@ -23,6 +24,9 @@ Homothetic :: struct {
 }
 
 // Variables
+
+CLEAR_COLOR :: 0xF3E0D9FF
+TEXT_COLOR :: 0x4A4A4AFF
 
 WIDTH : i32 = 1024
 HEIGHT : i32 = 768
@@ -46,6 +50,8 @@ blackMarkerTexCoords: rl.Rectangle
 whiteMarkerTexCoords: rl.Rectangle
 
 boardAtlas: rl.Texture2D
+
+font: rl.Font
 
 @(private="file")
 game : ^GoGame
@@ -98,20 +104,20 @@ main :: proc() {
 		rl.BeginDrawing()
 		defer rl.EndDrawing()
 
-		rl.ClearBackground(rl.GetColor(0x1b191cFF))
+		rl.ClearBackground(rl.GetColor(CLEAR_COLOR))
 
 		handle_input()
 		
-		// draw_board()
-
 		pixel_render_board(game, &pixelRender)
 		draw_pixel_render()
 
-		// draw_stones()
+		fps := rl.GetFPS()
+		fpsBuf: [8]u8
+		fpsStr := strconv.append_int(fpsBuf[:], i64(fps), 10)
+		fpsSize := rl.MeasureTextEx(font, cstring(&fpsBuf[0]), 30, 2)
+		rl.DrawTextEx(font, cstring(&fpsBuf[0]), rl.Vector2{f32(WIDTH) - (fpsSize.x + 10), 8}, 30, 2, rl.GetColor(TEXT_COLOR))
 
-		// draw_last_move()
-
-		rl.DrawFPS(10, 10)
+		// rl.DrawFPS(10, 10)
 
 		scorePrint: str.Builder
 		str.builder_init(&scorePrint, allocator=context.temp_allocator)
@@ -120,7 +126,10 @@ main :: proc() {
 		str.write_string(&scorePrint, ", White: ")
 		str.write_int(&scorePrint, game.whiteCaptures)
 
-		rl.DrawText(str.to_cstring(&scorePrint), 10, 30, 20, rl.WHITE)
+		// rl.DrawText(str.to_cstring(&scorePrint), 10, 30, 20, rl.WHITE)
+		scoreStr, err := str.to_cstring(&scorePrint)
+		scoreSize := rl.MeasureTextEx(font, scoreStr, 30, 2)
+		rl.DrawTextEx(font, scoreStr, rl.Vector2{f32(WIDTH) - (scoreSize.x + 10), 10 + fpsSize.y}, 30, 2, rl.GetColor(TEXT_COLOR))
 
 		free_all(context.temp_allocator)
 	}
@@ -136,14 +145,16 @@ init :: proc() {
 	captureSounds[0] = rl_sound_from_memory(#load("resource/capture1.wav"))
 	captureSounds[1] = rl_sound_from_memory(#load("resource/capture2.wav"))
 
-	stoneAtlas = rl_tex_from_memory(#load("resource/stone-atlas.png"))
+	stoneAtlas = rl_tex_from_memory(#load("resource/stone-atlas2.png"))
 	blackStoneTexCoords = rl.Rectangle{0, 0, 12, 12}
 	whiteStoneTexCoords = rl.Rectangle{12, 0, 12, 12}
 	blackMarkerTexCoords = rl.Rectangle{0, 12, 12, 12}
 	whiteMarkerTexCoords = rl.Rectangle{12, 12, 12, 12}
 
+	font = rl_font_from_memory(#load("resource/munro.ttf"))
+
 	// Render with -height to flip again
-	boardAtlas = rl_tex_from_memory(#load("resource/board-atlas.png"))
+	boardAtlas = rl_tex_from_memory(#load("resource/board-atlas2.png"))
 
 	for s in stoneSounds {
 		rl.SetSoundVolume(s, 0.6)
@@ -153,10 +164,10 @@ init :: proc() {
 		rl.SetSoundVolume(s, 0.6)
 	}
 	// node := parse_from_file("sgfs/test.sgf")
-	// game = parse_from_file("sgfs/5265-yly-TheCaptain-Vegetarian.sgf")
+	game = parse_from_file("sgfs/5265-yly-TheCaptain-Vegetarian.sgf")
 	// game = parse_from_file("sgfs/test_9x9.sgf")
-	game = new(GoGame)
-	init_game(game)
+	// game = new(GoGame)
+	// init_game(game)
 	// print_sgf(node)
 
 	pixel_init(game, &pixelRender)
@@ -196,7 +207,8 @@ init_transform :: proc() {
 	} else {
 
 	}
-	tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
+	// tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
+	tx.translateX = BOARD_MARGIN
 	tx.translateY = (f32(HEIGHT / 2) - (board_pix / 2))
 	tx.scaleX = f32(board_pix) / f32(game.boardSize)
 	tx.scaleY = f32(board_pix) / f32(game.boardSize)
@@ -244,6 +256,13 @@ handle_input :: proc() {
 
 	if rl.IsKeyPressed(.C) {
 		clear_board(game)
+	}
+
+	if rl.IsKeyPressed(.P) {
+		img := rl.LoadImageFromTexture(pixelRender.target.texture)
+		rl.ImageFlipVertical(&img)
+		res := rl.ExportImage(img, "test.png")
+		assert(res == true)
 	}
 }
 

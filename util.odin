@@ -25,3 +25,7 @@ rl_sound_from_memory :: proc(data: []u8) -> rl.Sound {
 	wav := rl.LoadWaveFromMemory(".wav", rawptr(&data[0]), i32(len(data)))
 	return rl.LoadSoundFromWave(wav)
 }
+
+rl_font_from_memory :: proc(data: []u8) -> rl.Font {
+	return rl.LoadFontFromMemory(".ttf", rawptr(&data[0]), i32(len(data)), 30, nil, 95)
+}
