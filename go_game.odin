@@ -36,6 +36,8 @@ GameNode :: struct {
 	// Make sure to clean up by backtracing through GameNode path if switching to another branch
 	captures : []Position,
 
+	treeRow, treeCol: int,
+
 	// N-ary tree
 	siblingNext: ^GameNode,
 	parent: ^GameNode,
@@ -137,6 +139,21 @@ clear_board :: proc(game : ^GoGame) {
 gamenode_new :: proc(game: ^GoGame) -> ^GameNode {
 	ptr := new(GameNode, allocator = game.alloc)
 	return ptr
+}
+
+// Tag tree with column and row coords
+layout_tree :: proc(game: ^GoGame) {
+	goto_leaf :: proc(node: ^GameNode, idx: int = 0) -> (int, ^GameNode) {
+		if node.children == nil do return idx, node
+		return goto_leaf(node.children, idx + 1)
+	}
+
+	recursive_traverse :: proc(mainline: ^GameNode, renderCol: int) {
+		depth, mainLeaf := goto_leaf(mainline)
+		
+	}
+
+	recursive_traverse(game.headNode, 0)
 }
 
 move_forward :: proc(game : ^GoGame, childIndex : int = 0) {

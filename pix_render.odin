@@ -26,6 +26,10 @@ pixel_init :: proc(game: ^GoGame, render: ^PixelGoRender) -> bool {
 	return rl.IsRenderTextureValid(render.target)
 }
 
+pixel_cleanup :: proc(render: ^PixelGoRender) {
+	delete(render.pixOffsets)
+}
+
 pixel_render_board :: proc(game: ^GoGame, render: ^PixelGoRender) {
 	bgTexCoords := rl.Rectangle{0, TILE_SIZE_PX,                 TILE_SIZE_PX, TILE_SIZE_PX}
 	centerLineCoords := rl.Rectangle{0, 0,                       TILE_SIZE_PX, TILE_SIZE_PX}

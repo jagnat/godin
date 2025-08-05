@@ -50,6 +50,7 @@ blackMarkerTexCoords: rl.Rectangle
 whiteMarkerTexCoords: rl.Rectangle
 
 boardAtlas: rl.Texture2D
+gameTreeAtlas: rl.Texture2D
 
 font: rl.Font
 
@@ -145,16 +146,18 @@ init :: proc() {
 	captureSounds[0] = rl_sound_from_memory(#load("resource/capture1.wav"))
 	captureSounds[1] = rl_sound_from_memory(#load("resource/capture2.wav"))
 
-	stoneAtlas = rl_tex_from_memory(#load("resource/stone-atlas2.png"))
+	stoneAtlas = rl_tex_from_memory(#load("resource/stone-atlas.png"))
 	blackStoneTexCoords = rl.Rectangle{0, 0, 12, 12}
 	whiteStoneTexCoords = rl.Rectangle{12, 0, 12, 12}
 	blackMarkerTexCoords = rl.Rectangle{0, 12, 12, 12}
 	whiteMarkerTexCoords = rl.Rectangle{12, 12, 12, 12}
 
+	gameTreeAtlas = rl_tex_from_memory(#load("resource/gametree-atlas.png"))
+
 	font = rl_font_from_memory(#load("resource/munro.ttf"))
 
 	// Render with -height to flip again
-	boardAtlas = rl_tex_from_memory(#load("resource/board-atlas2.png"))
+	boardAtlas = rl_tex_from_memory(#load("resource/board-atlas.png"))
 
 	for s in stoneSounds {
 		rl.SetSoundVolume(s, 0.6)
@@ -218,6 +221,7 @@ init_transform :: proc() {
 
 cleanup :: proc() {
 	free(game)
+	pixel_cleanup(&pixelRender)
 }
 
 handle_input :: proc() {
