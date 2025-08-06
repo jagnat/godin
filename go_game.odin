@@ -143,17 +143,49 @@ gamenode_new :: proc(game: ^GoGame) -> ^GameNode {
 
 // Tag tree with column and row coords
 layout_tree :: proc(game: ^GoGame) {
+	ColRange :: struct {
+		rowStart, rowEnd: int,
+		next: ^ColRange,
+	}
+
+	cols: [dynamic]^ColRange = make([dynamic]^ColRange, 256, context.temp_allocator)
+
 	goto_leaf :: proc(node: ^GameNode, idx: int = 0) -> (int, ^GameNode) {
 		if node.children == nil do return idx, node
 		return goto_leaf(node.children, idx + 1)
 	}
 
-	recursive_traverse :: proc(mainline: ^GameNode, renderCol: int) {
-		depth, mainLeaf := goto_leaf(mainline)
-		
+	columnCollides :: proc(colNo, rowStart, rowEnd: int) -> bool {
+		return false
 	}
 
-	recursive_traverse(game.headNode, 0)
+	recursive_traverse :: proc(mainline: ^GameNode, row, col: int) {
+		depth, mainLeaf := goto_leaf(mainline)
+
+		mainNode := mainLeaf
+		rowPos := row + depth
+		for {
+			mainNode.treeRow = rowPos
+			mainNode.treeCol = col
+
+			nextCol := col + 1
+			nextSibl := mainNode.siblingNext
+			for nextSibl != nil {
+				siblDepth, siblLeaf := goto_leaf(nextSibl)
+
+
+
+				nextSibl = nextSibl.siblingNext
+			}
+			
+
+			rowPos -= 1
+			if mainNode.parent == nil do break
+			mainNode = mainNode.parent
+		}
+	}
+
+	recursive_traverse(game.headNode, 0, 0)
 }
 
 move_forward :: proc(game : ^GoGame, childIndex : int = 0) {
