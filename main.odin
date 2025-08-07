@@ -113,11 +113,13 @@ main :: proc() {
 		rl.ClearBackground(rl.GetColor(CLEAR_COLOR))
 
 		handle_input()
+
+		layout_tree(game)
 		
 		pixel_render_board(game, &pixelRender)
 		draw_pixel_render()
 
-		if renderGameTree do draw_game_tree(&gameTreeRender)
+		if renderGameTree do draw_game_tree(&gameTreeRender, game)
 
 		fps := rl.GetFPS()
 		fpsBuf: [8]u8
@@ -174,7 +176,8 @@ init :: proc() {
 		rl.SetSoundVolume(s, 0.6)
 	}
 	// node := parse_from_file("sgfs/test.sgf")
-	game = parse_from_file("sgfs/5265-yly-TheCaptain-Vegetarian.sgf")
+	// game = parse_from_file("sgfs/5265-yly-TheCaptain-Vegetarian.sgf")
+	game = parse_from_file("sgfs/testcase_layout.sgf")
 	// game = parse_from_file("sgfs/test_9x9.sgf")
 	// game = new(GoGame)
 	// init_game(game)
