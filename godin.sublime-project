@@ -9,6 +9,7 @@
 	[
 		{
 			"name": "Odin Run",
+			"working_dir": "${project_path}",
 			"shell_cmd": "odin run . -debug",
 		},
 		{
@@ -17,8 +18,14 @@
 		},
 		{
 			"name": "Odin Run Release",
+			"working_dir": "${project_path}",
 			"shell_cmd": "odin run . -o:aggressive -no-bounds-check -microarch:native"
 		},
+		{
+			"name": "Odin Build Tests",
+			"working_dir": "${project_path}",
+			"shell_cmd": "odin build . -debug -build-mode:test -out:test.exe"
+		}
 	],
 	"settings":
 	{

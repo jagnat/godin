@@ -29,3 +29,7 @@ rl_sound_from_memory :: proc(data: []u8) -> rl.Sound {
 rl_font_from_memory :: proc(data: []u8) -> rl.Font {
 	return rl.LoadFontFromMemory(".ttf", rawptr(&data[0]), i32(len(data)), 30, nil, 95)
 }
+
+rl_vec2_from_i32 :: proc(x, y: i32) -> rl.Vector2 {
+	return rl.Vector2{f32(x), f32(y)}
+}

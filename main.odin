@@ -13,6 +13,8 @@ import "core:mem"
 // pixel margin of board from edge of screen
 BOARD_MARGIN :: 12
 
+MIN_GAMETREE_WIDTH :: 120
+
 // board space - 0, 0 in top left corner,
 // 18,18 in bottom right corner
 Homothetic :: struct {
@@ -58,6 +60,9 @@ font: rl.Font
 game : ^GoGame
 
 pixelRender : PixelGoRender
+
+renderGameTree: bool
+gameTreeRender: GameTreeRender
 
 main :: proc() {
 
@@ -111,6 +116,8 @@ main :: proc() {
 		
 		pixel_render_board(game, &pixelRender)
 		draw_pixel_render()
+
+		if renderGameTree do draw_game_tree(&gameTreeRender)
 
 		fps := rl.GetFPS()
 		fpsBuf: [8]u8
@@ -205,13 +212,22 @@ init_transform :: proc() {
 		}
 	}
 
-	if WIDTH < HEIGHT {
+	pix_for_tree := WIDTH - (BOARD_MARGIN * 3 + i32(board_pix))
 
+	if pix_for_tree >= MIN_GAMETREE_WIDTH {
+		renderGameTree = true
+		tx.translateX = BOARD_MARGIN
+		gameTreeRender.viewW = pix_for_tree
+		gameTreeRender.viewH = HEIGHT - 2 * BOARD_MARGIN
+		gameTreeRender.viewX = BOARD_MARGIN * 2 + i32(board_pix)
+		gameTreeRender.viewY = BOARD_MARGIN
 	} else {
-
+		renderGameTree = false
+		tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
 	}
+
 	// tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
-	tx.translateX = BOARD_MARGIN
+	// tx.translateX = BOARD_MARGIN
 	tx.translateY = (f32(HEIGHT / 2) - (board_pix / 2))
 	tx.scaleX = f32(board_pix) / f32(game.boardSize)
 	tx.scaleY = f32(board_pix) / f32(game.boardSize)

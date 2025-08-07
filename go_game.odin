@@ -3,6 +3,7 @@ package godin
 import vm "core:mem/virtual"
 import "core:mem"
 import "core:fmt"
+import "core:testing"
 
 GoTile :: enum u8 {
 	Liberty,
@@ -54,6 +55,9 @@ GoGame :: struct {
 	alloc: mem.Allocator,
 	boardSize: Coord,
 	capturePool: [dynamic]Position,
+
+	// width and height of tree layout grid
+	treeW, treeH: int,
 
 	// Variables set relative to current position in the game
 	capturePoolIdx: int,
@@ -148,23 +152,46 @@ layout_tree :: proc(game: ^GoGame) {
 		next: ^ColRange,
 	}
 
-	cols: [dynamic]^ColRange = make([dynamic]^ColRange, 256, context.temp_allocator)
+	LayoutCtx :: struct {
+		cols: [dynamic]^ColRange,
+		grandparent: ^GameNode,
+		maxCol, maxRow: int
+	}
+
+	ctx: LayoutCtx
+	ctx.cols = make([dynamic]^ColRange, 256, context.temp_allocator)
+	ctx.grandparent = game.headNode
 
 	goto_leaf :: proc(node: ^GameNode, idx: int = 0) -> (int, ^GameNode) {
 		if node.children == nil do return idx, node
 		return goto_leaf(node.children, idx + 1)
 	}
 
-	columnCollides :: proc(colNo, rowStart, rowEnd: int) -> bool {
+	columnCollides :: proc(ctx: ^LayoutCtx, colNo, rowStart, rowEnd: int) -> bool {
+		colPtr := ctx.cols[colNo]
+		for colPtr != nil {
+			if colPtr.rowStart <= rowEnd && rowStart <= colPtr.rowEnd do return true
+			colPtr = colPtr.next
+		}
 		return false
 	}
 
-	recursive_traverse :: proc(mainline: ^GameNode, row, col: int) {
+	addColRange :: proc(ctx: ^LayoutCtx, colNo, rowStart, rowEnd: int) {
+		range := new(ColRange, context.temp_allocator)
+		range.rowStart = rowStart
+		range.rowEnd = rowEnd
+		range.next = ctx.cols[colNo]
+		ctx.cols[colNo] = range
+	}
+
+	recursive_traverse :: proc(ctx: ^LayoutCtx, mainline: ^GameNode, row, col: int) {
 		depth, mainLeaf := goto_leaf(mainline)
 
 		mainNode := mainLeaf
 		rowPos := row + depth
-		for {
+		if rowPos > ctx.maxRow do ctx.maxRow = rowPos
+
+		for { // loop up the tree
 			mainNode.treeRow = rowPos
 			mainNode.treeCol = col
 
@@ -173,19 +200,37 @@ layout_tree :: proc(game: ^GoGame) {
 			for nextSibl != nil {
 				siblDepth, siblLeaf := goto_leaf(nextSibl)
 
+				for {
+					if !columnCollides(ctx, nextCol, rowPos, rowPos + siblDepth) {
+						break
+					}
+					nextCol += 1
+				}
 
+				if nextCol > col + 1 {
+					for c in col + 1 ..< nextCol {
+						addColRange(ctx, c, rowPos, rowPos)
+					}
+				}
+
+				if nextCol > ctx.maxCol do ctx.maxCol = nextCol
+				recursive_traverse(ctx, nextSibl, rowPos, nextCol)
 
 				nextSibl = nextSibl.siblingNext
 			}
-			
 
 			rowPos -= 1
-			if mainNode.parent == nil do break
+			if rowPos == row - 1 || mainNode.parent == nil do break
 			mainNode = mainNode.parent
 		}
+
+		addColRange(ctx, col, row, row + depth)
 	}
 
-	recursive_traverse(game.headNode, 0, 0)
+	recursive_traverse(&ctx, game.headNode, 0, 0)
+
+	game.treeW = ctx.maxCol + 1
+	game.treeH = ctx.maxRow + 1
 }
 
 move_forward :: proc(game : ^GoGame, childIndex : int = 0) {
@@ -380,4 +425,41 @@ add_child_node :: proc(parent, child: ^GameNode) -> (idx: int) {
 	}
 	child.parent = parent
 	return idx
+}
+
+@(test)
+test_layout_sgf :: proc(t: ^testing.T) {
+	context.allocator = context.temp_allocator
+	testcase1 := "(;GM[1]FF[4]CA[UTF-8]AP[Sabaki:0.52.2]KM[6.5]SZ[19]DT[2025-08-06];B[dd](;W[gg](;B[hj](;W[mh];B[ho])(;W[lf];B[ll]))(;B[mj]))(;W[mf];B[hm];W[fh];B[mk];W[ke];B[kk]))"
+	game := parse(testcase1)
+	fmt.println("TEST")
+	testing.expect(t, game != nil)
+
+	layout_tree(game)
+	fmt.println("tree w: ", game.treeW, " tree h: ", game.treeH)
+	testing.expect(t, game.treeW == 3 && game.treeH == 8)
+
+	nodeMap := make([dynamic]^GameNode, game.treeW * game.treeH)
+
+	dfs_fill :: proc(node: ^GameNode, m: [dynamic]^GameNode, numCols: int) {
+		if node == nil do return
+
+		m[node.treeRow * numCols + node.treeCol] = node
+
+		dfs_fill(node.children, m, numCols)
+		dfs_fill(node.siblingNext, m, numCols)
+	}
+
+	dfs_fill(game.headNode, nodeMap, game.treeW)
+
+	col0, col1, col2: int
+	for i in 0..< game.treeH {
+		col0 += nodeMap[i * game.treeW + 0] == nil? 0 : 1
+		col1 += nodeMap[i * game.treeW + 1] == nil? 0 : 1
+		col2 += nodeMap[i * game.treeW + 2] == nil? 0 : 1
+	}
+
+	testing.expect(t, col0 == 6)
+	testing.expect(t, col1 == 3)
+	testing.expect(t, col2 == 6)
 }

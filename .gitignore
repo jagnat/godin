@@ -1,6 +1,7 @@
 godin
 godin.exe
 godin.sublime-workspace
+test.exe
 *.pdb
 *.rdi
 *.dSYM
