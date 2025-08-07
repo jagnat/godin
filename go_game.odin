@@ -37,7 +37,7 @@ GameNode :: struct {
 	// Make sure to clean up by backtracing through GameNode path if switching to another branch
 	captures : []Position,
 
-	treeRow, treeCol: int,
+	treeRow, treeCol: i32,
 
 	// N-ary tree
 	siblingNext: ^GameNode,
@@ -57,7 +57,7 @@ GoGame :: struct {
 	capturePool: [dynamic]Position,
 
 	// width and height of tree layout grid
-	treeW, treeH: int,
+	treeW, treeH: i32,
 
 	// Variables set relative to current position in the game
 	capturePoolIdx: int,
@@ -192,8 +192,8 @@ layout_tree :: proc(game: ^GoGame) {
 		if rowPos > ctx.maxRow do ctx.maxRow = rowPos
 
 		for { // loop up the tree
-			mainNode.treeRow = rowPos
-			mainNode.treeCol = col
+			mainNode.treeRow = i32(rowPos)
+			mainNode.treeCol = i32(col)
 
 			nextCol := col + 1
 			nextSibl := mainNode.siblingNext
@@ -229,8 +229,8 @@ layout_tree :: proc(game: ^GoGame) {
 
 	recursive_traverse(&ctx, game.headNode, 0, 0)
 
-	game.treeW = ctx.maxCol + 1
-	game.treeH = ctx.maxRow + 1
+	game.treeW = i32(ctx.maxCol + 1)
+	game.treeH = i32(ctx.maxRow + 1)
 }
 
 move_forward :: proc(game : ^GoGame, childIndex : int = 0) {
@@ -441,7 +441,7 @@ test_layout_sgf :: proc(t: ^testing.T) {
 
 	nodeMap := make([dynamic]^GameNode, game.treeW * game.treeH)
 
-	dfs_fill :: proc(node: ^GameNode, m: [dynamic]^GameNode, numCols: int) {
+	dfs_fill :: proc(node: ^GameNode, m: [dynamic]^GameNode, numCols: i32) {
 		if node == nil do return
 
 		m[node.treeRow * numCols + node.treeCol] = node

@@ -267,10 +267,9 @@ handle_input :: proc() {
 			}
 		}
 	}
-	
+
 	mouseMove := rl.GetMouseWheelMove()
 	if abs(mouseMove) > 0.001 {
-		fmt.println("mouse move: ", mouseMove)
 		if mouseMove < 0 {
 			move_forward(game)
 		} else {
