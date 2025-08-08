@@ -101,10 +101,14 @@ draw_tree_recursively :: proc(render: ^GameTreeRender, node: ^GameNode) {
 			rl.DrawTexturePro(gameTreeAtlas, VERTICAL_LINK, parentRect, NODE_ORIGIN, 180, rl.WHITE)
 		} else {
 			rl.DrawTexturePro(gameTreeAtlas, DIAG_END, nodeRect, NODE_ORIGIN, 0, rl.WHITE)
-			if node.treeCol == parent.treeCol + 1 {
+			if node.treeCol == parent.treeCol + 1 { // only need to draw a single diagonal
 				rl.DrawTexturePro(gameTreeAtlas, DIAG_END, parentRect, NODE_ORIGIN, 180, rl.WHITE)
-			} else {
+			} else { // need to draw intermediate horizontal bars
 				rl.DrawTexturePro(gameTreeAtlas, HORIZ_DIAG, get_tree_tile_rect(render, node.treeCol - 1, node.treeRow - 1), NODE_ORIGIN, 0, rl.WHITE)
+				rl.DrawTexturePro(gameTreeAtlas, VERTICAL_LINK, parentRect, NODE_ORIGIN, 90, rl.WHITE)
+				for i in parent.treeCol + 1 ..< node.treeCol - 1 {
+					rl.DrawTexturePro(gameTreeAtlas, HORIZ_LINK, get_tree_tile_rect(render, i, node.treeRow - 1), NODE_ORIGIN, 0, rl.WHITE)
+				}
 			}
 		}
 	}

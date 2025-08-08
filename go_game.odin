@@ -209,7 +209,7 @@ layout_tree :: proc(game: ^GoGame) {
 
 				if nextCol > col + 1 {
 					for c in col + 1 ..< nextCol {
-						addColRange(ctx, c, rowPos, rowPos)
+						addColRange(ctx, c, rowPos - 1, rowPos - 1)
 					}
 				}
 
