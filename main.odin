@@ -61,7 +61,7 @@ game : ^GoGame
 
 pixelRender : PixelGoRender
 
-renderGameTree: bool
+renderSidePanel: bool
 gameTreeRender: GameTreeRender
 
 main :: proc() {
@@ -119,27 +119,29 @@ main :: proc() {
 		pixel_render_board(game, &pixelRender)
 		draw_pixel_render()
 
-		if renderGameTree do draw_game_tree(&gameTreeRender, game)
+		if renderSidePanel {
+			draw_game_tree(&gameTreeRender, game)
 
-		fps := rl.GetFPS()
-		fpsBuf: [8]u8
-		fpsStr := strconv.append_int(fpsBuf[:], i64(fps), 10)
-		fpsSize := rl.MeasureTextEx(font, cstring(&fpsBuf[0]), 30, 2)
-		rl.DrawTextEx(font, cstring(&fpsBuf[0]), rl.Vector2{f32(WIDTH) - (fpsSize.x + 10), 8}, 30, 2, rl.GetColor(TEXT_COLOR))
+			fps := rl.GetFPS()
+			fpsBuf: [8]u8
+			fpsStr := strconv.append_int(fpsBuf[:], i64(fps), 10)
+			fpsSize := rl.MeasureTextEx(font, cstring(&fpsBuf[0]), 30, 2)
+			rl.DrawTextEx(font, cstring(&fpsBuf[0]), rl.Vector2{f32(WIDTH) - (fpsSize.x + 10), 8}, 30, 2, rl.GetColor(TEXT_COLOR))
 
-		// rl.DrawFPS(10, 10)
+			// rl.DrawFPS(10, 10)
 
-		scorePrint: str.Builder
-		str.builder_init(&scorePrint, allocator=context.temp_allocator)
-		str.write_string(&scorePrint, "Black: ")
-		str.write_int(&scorePrint, game.blackCaptures)
-		str.write_string(&scorePrint, ", White: ")
-		str.write_int(&scorePrint, game.whiteCaptures)
+			scorePrint: str.Builder
+			str.builder_init(&scorePrint, allocator=context.temp_allocator)
+			str.write_string(&scorePrint, "Black: ")
+			str.write_int(&scorePrint, game.blackCaptures)
+			str.write_string(&scorePrint, ", White: ")
+			str.write_int(&scorePrint, game.whiteCaptures)
 
-		// rl.DrawText(str.to_cstring(&scorePrint), 10, 30, 20, rl.WHITE)
-		scoreStr, err := str.to_cstring(&scorePrint)
-		scoreSize := rl.MeasureTextEx(font, scoreStr, 30, 2)
-		rl.DrawTextEx(font, scoreStr, rl.Vector2{f32(WIDTH) - (scoreSize.x + 10), 10 + fpsSize.y}, 30, 2, rl.GetColor(TEXT_COLOR))
+			// rl.DrawText(str.to_cstring(&scorePrint), 10, 30, 20, rl.WHITE)
+			scoreStr, err := str.to_cstring(&scorePrint)
+			scoreSize := rl.MeasureTextEx(font, scoreStr, 30, 2)
+			rl.DrawTextEx(font, scoreStr, rl.Vector2{f32(WIDTH) - (scoreSize.x + 10), 10 + fpsSize.y}, 30, 2, rl.GetColor(TEXT_COLOR))
+		}
 
 		free_all(context.temp_allocator)
 	}
@@ -184,6 +186,7 @@ init :: proc() {
 	// print_sgf(node)
 
 	pixel_init(game, &pixelRender)
+	game_tree_render_init(&gameTreeRender)
 
 	when false {
 		img := rl.LoadImageFromTexture(pixelRender.target.texture)
@@ -218,14 +221,14 @@ init_transform :: proc() {
 	pix_for_tree := WIDTH - (BOARD_MARGIN * 3 + i32(board_pix))
 
 	if pix_for_tree >= MIN_GAMETREE_WIDTH {
-		renderGameTree = true
+		renderSidePanel = true
 		tx.translateX = BOARD_MARGIN
 		gameTreeRender.viewW = pix_for_tree
 		gameTreeRender.viewH = HEIGHT - 2 * BOARD_MARGIN
 		gameTreeRender.viewX = BOARD_MARGIN * 2 + i32(board_pix)
 		gameTreeRender.viewY = BOARD_MARGIN
 	} else {
-		renderGameTree = false
+		renderSidePanel = false
 		tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
 	}
 
