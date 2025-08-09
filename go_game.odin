@@ -370,14 +370,32 @@ do_move :: proc(game : ^GoGame, pos : Position) -> (captured: bool) {
 
 	if game.currentPosition == nil do game.currentPosition = game.headNode
 
-	node := gamenode_new(game)
-	node.pos = pos
-	node.tile = game.nextTile
-	node.moveType = .Move
+	child := game.currentPosition.children
+	idx := 0
+	foundChildMove := false
+	for child != nil {
+		if child.moveType == .Move && child.pos == pos && child.tile == game.nextTile {
+			foundChildMove = true
+			break
+		}
+		child = child.siblingNext
+		idx += 1
+	}
 
-	// Add node to thingy
-	oldNode := game.currentPosition
-	idx := add_child_node(oldNode, node)
+	node: ^GameNode
+
+	if foundChildMove {
+		node = child
+	} else {
+		node = gamenode_new(game)
+		node.pos = pos
+		node.tile = game.nextTile
+		node.moveType = .Move
+
+		// Add node to thingy
+		oldNode := game.currentPosition
+		idx = add_child_node(oldNode, node)
+	}
 
 	move_forward(game, idx)
 
