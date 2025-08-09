@@ -195,8 +195,12 @@ layout_tree :: proc(game: ^GoGame) {
 			mainNode.treeRow = i32(rowPos)
 			mainNode.treeCol = i32(col)
 
+			// Skip further processing of siblings at top node - the caller will handle that
+			if mainNode == mainline do break
+
 			nextCol := col + 1
 			nextSibl := mainNode.siblingNext
+
 			for nextSibl != nil {
 				siblDepth, siblLeaf := goto_leaf(nextSibl)
 

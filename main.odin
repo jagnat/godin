@@ -177,7 +177,7 @@ init :: proc() {
 	}
 	// node := parse_from_file("sgfs/test.sgf")
 	// game = parse_from_file("sgfs/5265-yly-TheCaptain-Vegetarian.sgf")
-	game = parse_from_file("sgfs/testcase_layout2.sgf")
+	game = parse_from_file("sgfs/testcase_layout4.sgf")
 	// game = parse_from_file("sgfs/test_9x9.sgf")
 	// game = new(GoGame)
 	// init_game(game)
