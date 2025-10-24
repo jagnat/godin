@@ -313,6 +313,45 @@ move_backward :: proc(game: ^GoGame) {
 	game.currentPosition = prevNode
 }
 
+// recompute board state by replaying from root to the given node
+replay_to_node :: proc(game: ^GoGame, target: ^GameNode) {
+	if game == nil || target == nil do return
+
+	path := make([dynamic]^GameNode, 0, 128, allocator=context.temp_allocator)
+	current := target
+	for current != nil {
+		append(&path, current)
+		current = current.parent
+	}
+
+	// reset board state
+	clear_board(game)
+	game.whiteCaptures = 0
+	game.blackCaptures = 0
+	game.capturePoolIdx = 0
+	game.nextTile = .Black
+	game.currentPosition = game.headNode
+
+	for i := len(path) - 1; i >= 1; i -= 1 {
+		parent := path[i]
+		child := path[i - 1]
+		// find child index among parent's children
+		idx := 0
+		ptr := parent.children
+		found := false
+		for ptr != nil {
+			if ptr == child {
+				found = true
+				break
+			}
+			ptr = ptr.siblingNext
+			idx += 1
+		}
+		if !found do break
+		move_forward(game, idx)
+	}
+}
+
 add_stones :: proc(game: ^GoGame, positions: []Position, tile: GoTile) {
 	for pos in positions {
 		set_tile(game, pos, tile)

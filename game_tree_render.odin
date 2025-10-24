@@ -1,17 +1,25 @@
 package godin
 
 import "core:fmt"
+import "core:math"
 import rl "vendor:raylib"
 
 GameTreeRender :: struct {
 	// top left x, y and w / h
-	viewX, viewY, viewW, viewH: i32,
+	view: rl.Rectangle,
+	centeredTree: rl.Rectangle,
 
-	treeX, treeY, treeW, treeH: i32,
+	// panning state
+	panOffset: rl.Vector2,
 
-	scrollXEnabled, scrollYEnabled: bool,
-	scrollXPercent: f32,
-	scrollYPercent: f32,
+	panStarting: bool,
+	isPanning: bool,
+	panStartMousePos: rl.Vector2,
+
+	// tween state
+	panTarget: rl.Vector2,
+	activeTweenSpeed: f32,
+	panStart: rl.Vector2,
 
 	selectedNode : ^GameNode
 }
@@ -20,7 +28,13 @@ NODE_SIZE_PX :: 24
 
 SPRITE_SIZE_PX :: 12
 
-SCROLL_BAR_WIDTH :: 16
+TWEEN_DRAG_SECONDS :: 0.06
+TWEEN_SELECT_SECONDS :: 0.18
+TWEEN_MOVE_SECONDS :: 0.14
+
+DRAG_PX_THRESHOLD :: 4
+
+PAN_CLAMP_PADDING : f32 : NODE_SIZE_PX
 
 NODE_ORIGIN :: rl.Vector2{NODE_SIZE_PX / 2, NODE_SIZE_PX / 2}
 
@@ -37,49 +51,31 @@ HORIZ_LINK            :: rl.Rectangle{3 * SPRITE_SIZE_PX, SPRITE_SIZE_PX,       
 HORIZ_DIAG            :: rl.Rectangle{4 * SPRITE_SIZE_PX, SPRITE_SIZE_PX,          SPRITE_SIZE_PX, SPRITE_SIZE_PX}
 
 game_tree_render_init :: proc(render: ^GameTreeRender) {
-	render.scrollXPercent = 0.5
-	render.scrollYPercent = 0.5
+	
 }
 
 draw_game_tree :: proc(render: ^GameTreeRender, game: ^GoGame) {
-	rl.DrawRectangleV(rl_vec2_from_i32(render.viewX, render.viewY), rl_vec2_from_i32(render.viewW, render.viewH), rl.Color{255, 255, 255, 80})
+	rl.BeginScissorMode(i32(render.view.x), i32(render.view.y), i32(render.view.width), i32(render.view.height))
+	defer rl.EndScissorMode()
+
+	rl.DrawRectangleV(rl.Vector2{render.view.x, render.view.y}, rl.Vector2{render.view.width, render.view.height}, rl.Color{255, 255, 255, 80})
 
 	treeRows := game.treeH
 	treeCols := game.treeW
 
-	render.treeW = i32(NODE_SIZE_PX * treeCols)
-	render.treeH = i32(NODE_SIZE_PX * treeRows)
+	render.centeredTree.width = f32(NODE_SIZE_PX * treeCols)
+	render.centeredTree.height = f32(NODE_SIZE_PX * treeRows)
+	render.centeredTree.x = render.view.x + (render.view.width - render.centeredTree.width) / 2
+	render.centeredTree.y = render.view.y + (render.view.height - render.centeredTree.height) / 2
 
-	render.scrollXEnabled = false
-	render.scrollYEnabled = false
+	update_tree_panning(render, game)
 
-	// For now assume it fits, we will handle scroll layout later
-	if render.treeW <= render.viewW && render.treeH <= render.viewH {
-		render.treeX = render.viewX + (render.viewW - render.treeW) / 2
-		render.treeY = render.viewY + (render.viewH - render.treeH) / 2
+	dt := rl.GetFrameTime()
+	update_tween(render, f32(dt))
 
-		render.selectedNode = game.currentPosition
-
-	} else {
-		ySub := i32(0)
-		if render.treeW > render.viewX {
-			render.scrollXEnabled = true
-			ySub += SCROLL_BAR_WIDTH
-		}
-		if render.treeH - ySub > render.viewY {
-			render.scrollYEnabled = true
-		}
-		if render.scrollYEnabled && render.treeW - SCROLL_BAR_WIDTH > render.viewX {
-			render.scrollXEnabled = true
-		}
-
-	}
+	render.selectedNode = game.currentPosition
 
 	draw_tree_recursively(render, game.headNode)
-
-	// Draw border
-	// Draw scroll bars
-	// Draw 
 }
 
 get_tree_node_rect :: proc(render: ^GameTreeRender, node: ^GameNode) -> rl.Rectangle {
@@ -87,9 +83,9 @@ get_tree_node_rect :: proc(render: ^GameTreeRender, node: ^GameNode) -> rl.Recta
 }
 
 get_tree_tile_rect :: proc(render: ^GameTreeRender, col, row: i32) -> rl.Rectangle {
-	x := render.treeX + col * NODE_SIZE_PX
-	y := render.treeY + row * NODE_SIZE_PX
-	return rl.Rectangle{f32(x) + NODE_SIZE_PX / 2, f32(y) + NODE_SIZE_PX / 2, NODE_SIZE_PX, NODE_SIZE_PX}
+	x := render.centeredTree.x + render.panOffset.x + f32(col) * NODE_SIZE_PX
+	y := render.centeredTree.y + render.panOffset.y + f32(row) * NODE_SIZE_PX
+	return rl.Rectangle{x + NODE_SIZE_PX / 2, y + NODE_SIZE_PX / 2, NODE_SIZE_PX, NODE_SIZE_PX}
 }
 
 draw_tree_recursively :: proc(render: ^GameTreeRender, node: ^GameNode) {
@@ -144,10 +140,131 @@ draw_tree_recursively :: proc(render: ^GameTreeRender, node: ^GameNode) {
 	draw_tree_recursively(render, node.siblingNext)
 }
 
-draw_horiz_scrollbar :: proc () {
+clamp_tree_pan :: proc(render: ^GameTreeRender) {
+	// require at least PAN_CLAMP_PADDING pixels on panel
+	pad := PAN_CLAMP_PADDING
+	minX := (render.view.x + pad) - (render.centeredTree.x + render.centeredTree.width)
+	maxX := (render.view.x + render.view.width) - pad - render.centeredTree.x
+	minY := (render.view.y + pad) - (render.centeredTree.y + render.centeredTree.height)
+	maxY := (render.view.y + render.view.height) - pad - render.centeredTree.y
 
+	if render.panOffset.x < minX do render.panOffset.x = minX
+	if render.panOffset.x > maxX do render.panOffset.x = maxX
+	if render.panOffset.y < minY do render.panOffset.y = minY
+	if render.panOffset.y > maxY do render.panOffset.y = maxY
 }
 
-draw_vert_scrollbar :: proc() {
+update_tree_panning :: proc(render: ^GameTreeRender, game: ^GoGame) {
+	pos := rl.GetMousePosition()
 
+	mouseInsidePanel := is_mouse_inside_tree_panel(render)
+
+	if rl.IsMouseButtonPressed(.LEFT) && mouseInsidePanel {
+		render.panStartMousePos = pos
+		render.panStarting = true
+		render.panStart = render.panOffset
+	} else if rl.IsMouseButtonPressed(.LEFT) {
+		render.panStarting = false
+	}
+
+	if rl.IsMouseButtonDown(.LEFT) && !render.isPanning && render.panStarting {
+		dx := pos.x - render.panStartMousePos.x
+		dy := pos.y - render.panStartMousePos.y
+		if math.abs(dx) >= DRAG_PX_THRESHOLD || math.abs(dy) >= DRAG_PX_THRESHOLD {
+			render.isPanning = true
+		}
+	}
+
+	if rl.IsMouseButtonDown(.LEFT) && render.isPanning {
+		totalDx := pos.x - render.panStartMousePos.x
+		totalDy := pos.y - render.panStartMousePos.y
+		render.panTarget.x = render.panStart.x + totalDx
+		render.panTarget.y = render.panStart.y + totalDy
+		render.activeTweenSpeed = TWEEN_DRAG_SECONDS
+	}
+
+	if rl.IsMouseButtonReleased(.LEFT) && render.isPanning {
+		render.panTarget.x = render.panOffset.x
+		render.panTarget.y = render.panOffset.y
+		render.activeTweenSpeed = 0
+		render.isPanning = false
+	} else if rl.IsMouseButtonReleased(.LEFT) && mouseInsidePanel {
+		picked := pick_tree_node(render, game, pos)
+		if picked != nil {
+			replay_to_node(game, picked)
+			center_tree_on_node(render, picked)
+		}
+	}
+}
+
+// convert center-anchored draw rect to top-left anchored pick rect
+get_node_pick_rect :: proc(render: ^GameTreeRender, node: ^GameNode) -> rl.Rectangle {
+	rect := get_tree_node_rect(render, node)
+	return rl.Rectangle{rect.x - rect.width / 2, rect.y - rect.height / 2, rect.width, rect.height}
+}
+
+// DFS to pick node under mouse
+pick_tree_node :: proc(render: ^GameTreeRender, game: ^GoGame, mouse: rl.Vector2) -> ^GameNode {
+	return pick_tree_node_dfs(render, game.headNode, mouse)
+}
+
+pick_tree_node_dfs :: proc(render: ^GameTreeRender, node: ^GameNode, mouse: rl.Vector2) -> ^GameNode {
+	if node == nil do return nil
+
+	rect := get_node_pick_rect(render, node)
+	if rl.CheckCollisionPointRec(mouse, rect) do return node
+
+	res := pick_tree_node_dfs(render, node.children, mouse)
+	if res != nil do return res
+	return pick_tree_node_dfs(render, node.siblingNext, mouse)
+}
+
+center_tree_on_node :: proc(render: ^GameTreeRender, node: ^GameNode) {
+	centerX := render.view.x + render.view.width / 2
+	centerY := render.view.y + render.view.height / 2
+
+	nodeLocalX := node.treeCol * NODE_SIZE_PX + NODE_SIZE_PX / 2
+	nodeLocalY := node.treeRow * NODE_SIZE_PX + NODE_SIZE_PX / 2
+
+	newOffX := centerX - render.centeredTree.x - f32(nodeLocalX)
+	newOffY := centerY - render.centeredTree.y - f32(nodeLocalY)
+
+	render.panTarget.x = newOffX
+	render.panTarget.y = newOffY
+	render.activeTweenSpeed = TWEEN_SELECT_SECONDS
+}
+
+update_tween :: proc(render: ^GameTreeRender, dt: f32) {
+	if dt <= 0 do return
+
+	if render.activeTweenSpeed > 0 {
+		// X axis
+		dx := f32(render.panTarget.x - render.panOffset.x)
+		speedX := dx / render.activeTweenSpeed
+		stepX := speedX * dt
+		if math.abs(stepX) > math.abs(dx) {
+			stepX = dx
+		}
+		// render.panOffset.x += math.round_f32(stepX)
+		render.panOffset.x += stepX
+
+		// Y axis
+		dy := f32(render.panTarget.y - render.panOffset.y)
+		speedY := dy / render.activeTweenSpeed
+		stepY := speedY * dt
+		if math.abs(stepY) > math.abs(dy) {
+			stepY = dy
+		}
+		render.panOffset.y += stepY
+	}
+
+	clamp_tree_pan(render)
+}
+
+is_mouse_inside_tree_panel :: proc(render: ^GameTreeRender) -> bool {
+	pos := rl.GetMousePosition()
+	return pos.x >= render.view.x &&
+		pos.x < (render.view.x + render.view.width) &&
+		pos.y >= render.view.y &&
+		pos.y < (render.view.y + render.view.height)
 }

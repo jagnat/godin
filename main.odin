@@ -124,12 +124,10 @@ main :: proc() {
 
 			fps := rl.GetFPS()
 			fpsBuf: [8]u8
-			fpsStr := strconv.append_int(fpsBuf[:], i64(fps), 10)
+			fpsStr := strconv.write_int(fpsBuf[:], i64(fps), 10)
 			fpsSize := rl.MeasureTextEx(font, cstring(&fpsBuf[0]), 30, 2)
 			rl.DrawTextEx(font, cstring(&fpsBuf[0]), rl.Vector2{f32(WIDTH) - (fpsSize.x + 10), 8}, 30, 2, rl.GetColor(TEXT_COLOR))
-
-			// rl.DrawFPS(10, 10)
-
+			
 			scorePrint: str.Builder
 			str.builder_init(&scorePrint, allocator=context.temp_allocator)
 			str.write_string(&scorePrint, "Black: ")
@@ -223,10 +221,10 @@ init_transform :: proc() {
 	if pix_for_tree >= MIN_GAMETREE_WIDTH {
 		renderSidePanel = true
 		tx.translateX = BOARD_MARGIN
-		gameTreeRender.viewW = pix_for_tree
-		gameTreeRender.viewH = HEIGHT - 2 * BOARD_MARGIN
-		gameTreeRender.viewX = BOARD_MARGIN * 2 + i32(board_pix)
-		gameTreeRender.viewY = BOARD_MARGIN
+		gameTreeRender.view.width = f32(pix_for_tree)
+		gameTreeRender.view.height = f32(HEIGHT - 2 * BOARD_MARGIN)
+		gameTreeRender.view.x = f32(BOARD_MARGIN * 2 + i32(board_pix))
+		gameTreeRender.view.y = BOARD_MARGIN
 	} else {
 		renderSidePanel = false
 		tx.translateX = (f32(WIDTH / 2) - (board_pix / 2))
@@ -248,6 +246,14 @@ cleanup :: proc() {
 
 handle_input :: proc() {
 	pos := rl.GetMousePosition()
+
+	// check for skip board input
+	insideTree := is_mouse_inside_tree_panel(&gameTreeRender)
+	if renderSidePanel {
+		if gameTreeRender.isPanning || (rl.IsMouseButtonPressed(.LEFT) && insideTree) {
+			return
+		}
+	}
 
 	stone_pos := px_to_stone(pos)
 	cx, cy := Coord(math.round_f32(stone_pos.x)), Coord(math.round_f32(stone_pos.y))
