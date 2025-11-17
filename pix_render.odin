@@ -31,12 +31,12 @@ pixel_cleanup :: proc(render: ^PixelGoRender) {
 }
 
 pixel_render_board :: proc(game: ^GoGame, render: ^PixelGoRender) {
-	bgTexCoords := rl.Rectangle{0, TILE_SIZE_PX,                 TILE_SIZE_PX, TILE_SIZE_PX}
-	centerLineCoords := rl.Rectangle{0, 0,                       TILE_SIZE_PX, TILE_SIZE_PX}
-	cornerLineCoords := rl.Rectangle{1 * TILE_SIZE_PX, 0,        TILE_SIZE_PX, TILE_SIZE_PX}
-	sideLineCoords := rl.Rectangle{2 * TILE_SIZE_PX, 0,          TILE_SIZE_PX, TILE_SIZE_PX}
-	hoshiLineCoords := rl.Rectangle{3 * TILE_SIZE_PX, 0,         TILE_SIZE_PX, TILE_SIZE_PX}
-	shadowCoords := rl.Rectangle{3 * TILE_SIZE_PX, TILE_SIZE_PX, TILE_SIZE_PX, TILE_SIZE_PX}
+	bgTexCoords :: rl.Rectangle{0, TILE_SIZE_PX,                 TILE_SIZE_PX, TILE_SIZE_PX}
+	centerLineCoords :: rl.Rectangle{0, 0,                       TILE_SIZE_PX, TILE_SIZE_PX}
+	cornerLineCoords :: rl.Rectangle{1 * TILE_SIZE_PX, 0,        TILE_SIZE_PX, TILE_SIZE_PX}
+	sideLineCoords :: rl.Rectangle{2 * TILE_SIZE_PX, 0,          TILE_SIZE_PX, TILE_SIZE_PX}
+	hoshiLineCoords :: rl.Rectangle{3 * TILE_SIZE_PX, 0,         TILE_SIZE_PX, TILE_SIZE_PX}
+	shadowCoords :: rl.Rectangle{3 * TILE_SIZE_PX, TILE_SIZE_PX, TILE_SIZE_PX, TILE_SIZE_PX}
 
 	fullRect := rl.Rectangle{0, 0, f32(render.target.texture.width), f32(render.target.texture.height)}
 

@@ -286,10 +286,6 @@ handle_input :: proc() {
 		}
 	}
 
-	if rl.IsKeyPressed(.C) {
-		clear_board(game)
-	}
-
 	if rl.IsKeyPressed(.P) {
 		img := rl.LoadImageFromTexture(pixelRender.target.texture)
 		rl.ImageFlipVertical(&img)

@@ -38,17 +38,22 @@ PAN_CLAMP_PADDING : f32 : NODE_SIZE_PX
 
 NODE_ORIGIN :: rl.Vector2{NODE_SIZE_PX / 2, NODE_SIZE_PX / 2}
 
-BLACK_NODE_UNSELECTED :: rl.Rectangle{0,                0,              SPRITE_SIZE_PX, SPRITE_SIZE_PX}
-BLACK_NODE_SELECTED   :: rl.Rectangle{0,                SPRITE_SIZE_PX,   SPRITE_SIZE_PX, SPRITE_SIZE_PX}
-WHITE_NODE_UNSELECTED :: rl.Rectangle{1 * SPRITE_SIZE_PX, 0,              SPRITE_SIZE_PX, SPRITE_SIZE_PX}
-WHITE_NODE_SELECTED   :: rl.Rectangle{1 * SPRITE_SIZE_PX, SPRITE_SIZE_PX,   SPRITE_SIZE_PX, SPRITE_SIZE_PX}
-OTHER_NODE_UNSELECTED :: rl.Rectangle{2 * SPRITE_SIZE_PX, 0,              SPRITE_SIZE_PX, SPRITE_SIZE_PX}
-OTHER_NODE_SELECTED   :: rl.Rectangle{2 * SPRITE_SIZE_PX, SPRITE_SIZE_PX,   SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+BLACK_NODE_UNSELECTED      :: rl.Rectangle{0 * SPRITE_SIZE_PX, 0 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+BLACK_NODE_SELECTED        :: rl.Rectangle{0 * SPRITE_SIZE_PX, 1 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+WHITE_NODE_UNSELECTED      :: rl.Rectangle{1 * SPRITE_SIZE_PX, 0 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+WHITE_NODE_SELECTED        :: rl.Rectangle{1 * SPRITE_SIZE_PX, 1 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+OTHER_NODE_UNSELECTED      :: rl.Rectangle{2 * SPRITE_SIZE_PX, 0 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+OTHER_NODE_SELECTED        :: rl.Rectangle{2 * SPRITE_SIZE_PX, 1 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
 
-VERTICAL_LINK         :: rl.Rectangle{3 * SPRITE_SIZE_PX, 0,              SPRITE_SIZE_PX, SPRITE_SIZE_PX}
-DIAG_END              :: rl.Rectangle{4 * SPRITE_SIZE_PX, 0,          SPRITE_SIZE_PX, SPRITE_SIZE_PX}
-HORIZ_LINK            :: rl.Rectangle{3 * SPRITE_SIZE_PX, SPRITE_SIZE_PX,          SPRITE_SIZE_PX, SPRITE_SIZE_PX}
-HORIZ_DIAG            :: rl.Rectangle{4 * SPRITE_SIZE_PX, SPRITE_SIZE_PX,          SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+SEL_VERTICAL_LINK        :: rl.Rectangle{3 * SPRITE_SIZE_PX, 0 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+SEL_DIAG_END             :: rl.Rectangle{4 * SPRITE_SIZE_PX, 0 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+SEL_HORIZ_LINK           :: rl.Rectangle{3 * SPRITE_SIZE_PX, 1 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+SEL_HORIZ_DIAG           :: rl.Rectangle{4 * SPRITE_SIZE_PX, 1 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+
+DESEL_VERTICAL_LINK        :: rl.Rectangle{3 * SPRITE_SIZE_PX, 2 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+DESEL_DIAG_END             :: rl.Rectangle{4 * SPRITE_SIZE_PX, 2 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+DESEL_HORIZ_LINK           :: rl.Rectangle{3 * SPRITE_SIZE_PX, 3 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
+DESEL_HORIZ_DIAG           :: rl.Rectangle{4 * SPRITE_SIZE_PX, 3 * SPRITE_SIZE_PX,  SPRITE_SIZE_PX, SPRITE_SIZE_PX}
 
 game_tree_render_init :: proc(render: ^GameTreeRender) {
 	
@@ -118,19 +123,19 @@ draw_tree_recursively :: proc(render: ^GameTreeRender, node: ^GameNode) {
 	if parent != nil {
 		parentRect := get_tree_node_rect(render, parent)
 		if parent.treeCol == node.treeCol { // simple link
-			rl.DrawTexturePro(gameTreeAtlas, VERTICAL_LINK, nodeRect, NODE_ORIGIN, 0, rl.WHITE)
-			rl.DrawTexturePro(gameTreeAtlas, VERTICAL_LINK, parentRect, NODE_ORIGIN, 180, rl.WHITE)
+			rl.DrawTexturePro(gameTreeAtlas, DESEL_VERTICAL_LINK, nodeRect, NODE_ORIGIN, 0, rl.WHITE)
+			rl.DrawTexturePro(gameTreeAtlas, DESEL_VERTICAL_LINK, parentRect, NODE_ORIGIN, 180, rl.WHITE)
 		} else {
-			rl.DrawTexturePro(gameTreeAtlas, DIAG_END, nodeRect, NODE_ORIGIN, 0, rl.WHITE)
+			rl.DrawTexturePro(gameTreeAtlas, DESEL_DIAG_END, nodeRect, NODE_ORIGIN, 0, rl.WHITE)
 			if node.treeCol == parent.treeCol + 1 { // only need to draw a single diagonal
-				rl.DrawTexturePro(gameTreeAtlas, DIAG_END, parentRect, NODE_ORIGIN, 180, rl.WHITE)
+				rl.DrawTexturePro(gameTreeAtlas, DESEL_DIAG_END, parentRect, NODE_ORIGIN, 180, rl.WHITE)
 			} else { // need to draw intermediate horizontal bars
 				diagRect := get_tree_tile_rect(render, node.treeCol - 1, node.treeRow - 1)
-				rl.DrawTexturePro(gameTreeAtlas, HORIZ_DIAG, diagRect, NODE_ORIGIN, 0, rl.WHITE)
-				rl.DrawTexturePro(gameTreeAtlas, VERTICAL_LINK, parentRect, NODE_ORIGIN, 90, rl.WHITE)
+				rl.DrawTexturePro(gameTreeAtlas, DESEL_HORIZ_DIAG, diagRect, NODE_ORIGIN, 0, rl.WHITE)
+				rl.DrawTexturePro(gameTreeAtlas, DESEL_VERTICAL_LINK, parentRect, NODE_ORIGIN, 90, rl.WHITE)
 				for i in parent.treeCol + 1 ..< node.treeCol - 1 {
 					horizRect := get_tree_tile_rect(render, i, node.treeRow - 1)
-					rl.DrawTexturePro(gameTreeAtlas, HORIZ_LINK, horizRect, NODE_ORIGIN, 0, rl.WHITE)
+					rl.DrawTexturePro(gameTreeAtlas, DESEL_HORIZ_LINK, horizRect, NODE_ORIGIN, 0, rl.WHITE)
 				}
 			}
 		}

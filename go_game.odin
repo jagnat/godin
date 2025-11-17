@@ -68,6 +68,8 @@ GoGame :: struct {
 	komi: f32,
 	nextTile: GoTile,
 
+	selectedLineLeaf: ^GameNode,
+
 	hoverPos: Position
 }
 
