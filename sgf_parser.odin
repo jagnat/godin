@@ -26,6 +26,17 @@ ParseError :: enum {
 	IoError,
 }
 
+// SGF constants
+P_MOVE_BLACK :: "B"
+P_MOVE_WHITE :: "W"
+P_ADD_BLACK  :: "AB"
+P_ADD_WHITE  :: "AW"
+P_ADD_ERASE  :: "AE"
+P_COMMENT    :: "C"
+P_SIZE       :: "SZ"
+P_KOMI       :: "KM"
+P_NEXTPLAYER :: "PL"
+
 parse_from_file :: proc (filepath: string) -> ^GoGame {
 
 	data, ok := os.read_entire_file(filepath, context.allocator)
@@ -141,7 +152,7 @@ parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError)
 
 	for prop in properties {
 		switch prop.id {
-			case "W", "B": {
+			case P_MOVE_BLACK, P_MOVE_WHITE: {
 				if foundMove {
 					return ret, .ValueError
 				}
@@ -150,24 +161,24 @@ parse_node :: proc(parse: ^SgfParseContext) -> (ret: ^GameNode, err: ParseError)
 				ret.moveType = .Pass if (ret.pos[0] == -1 && ret.pos[1] == -1) else .Move
 				foundMove = true
 			}
-			case "AB", "AW", "AE": {
-				tile : GoTile = .Black if str.contains(prop.id, "AB") else (.White if str.contains(prop.id, "AW") else .Liberty)
+			case P_ADD_BLACK, P_ADD_WHITE, P_ADD_ERASE: {
+				tile : GoTile = .Black if str.contains(prop.id, P_ADD_BLACK) else (.White if str.contains(prop.id, P_ADD_WHITE) else .Liberty)
 				for val in prop.values {
 					p := pos_from_value(val) or_return
 					append(&setupPoints, SetupStone{p, tile})
 				}
 			}
-			case "C": {
+			case P_COMMENT: {
 				ret.comment = prop.values[0]
 			}
-			case "KM": {
+			case P_KOMI: {
 				komi, ok := strconv.parse_f32(prop.values[0])
 				if !ok {
 					return ret, .ValueError
 				}
 				parse.game.komi = komi
 			}
-			case "SZ": {
+			case P_SIZE: {
 				size, ok := strconv.parse_int(prop.values[0])
 				if !ok {
 					return ret, .ValueError
