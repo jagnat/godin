@@ -42,10 +42,8 @@ pixel_render_board :: proc(game: ^GoGame, render: ^PixelGoRender) {
 
 	maxCoord := render.boardSize - 1
 
-	using rl
-
-	BeginTextureMode(render.target)
-	defer EndTextureMode()
+	rl.BeginTextureMode(render.target)
+	defer rl.EndTextureMode()
 
 	for j in 0..<render.boardSize {
 		for i in 0..<render.boardSize {

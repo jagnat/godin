@@ -40,7 +40,7 @@ P_NEXTPLAYER :: "PL"
 parse_from_file :: proc (filepath: string) -> ^GoGame {
 
 	data, ok := os.read_entire_file(filepath, context.allocator)
-	if !ok { return nil }
+	if ok != nil { return nil }
 
 	defer delete(data, context.allocator)
 
