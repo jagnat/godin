@@ -277,14 +277,21 @@ handle_input :: proc() {
 		}
 	}
 
+	moveDir := 0
+
 	mouseMove := rl.GetMouseWheelMove()
 	if abs(mouseMove) > 0.001 {
 		if mouseMove < 0 {
-			move_forward(game)
+			moveDir += 1
 		} else {
-			move_backward(game)
+			moveDir -= 1
 		}
 	}
+	if rl.IsKeyPressed(.LEFT) do moveDir -= 1
+	if rl.IsKeyPressed(.RIGHT) do moveDir += 1
+
+	if moveDir > 0 do move_forward(game)
+	else if moveDir < 0 do move_backward(game)
 
 	if rl.IsKeyPressed(.P) {
 		img := rl.LoadImageFromTexture(pixelRender.target.texture)

@@ -68,15 +68,13 @@ GoGame :: struct {
 	komi: f32,
 	nextTile: GoTile,
 
-	selectedLineLeaf: ^GameNode,
-
 	hoverPos: Position
 }
 
 @private Neighbors : []Position : {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
 
 init_game :: proc (game : ^GoGame, boardSize : Coord = 19, generateHeadNode : bool = true) {
-
+	fmt.println("Size of game node: ", size_of(GameNode))
 	err := vm.arena_init_growing(&game.arena)
 	if (err != .None) {
 		panic("Error initing go allocator")
