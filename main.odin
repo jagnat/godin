@@ -9,6 +9,7 @@ import rl "vendor:raylib"
 import "core:math"
 import "core:math/rand"
 import "core:mem"
+import "core:os"
 
 // pixel margin of board from edge of screen
 BOARD_MARGIN :: 12
@@ -88,7 +89,7 @@ main :: proc() {
 		}
 	}
 
-	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
+	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT, .WINDOW_HIGHDPI})
 	rl.SetTraceLogLevel(.ERROR)
 
 	rl.InitWindow(WIDTH, HEIGHT, "Bamboo Joint")
@@ -99,7 +100,14 @@ main :: proc() {
 	init()
 	defer cleanup()
 
+	// raylib bug: its resize/DPI callbacks check `_GLFW_WAYLAND` at compile time, which is never
+	// defined when raylib links an external GLFW (as nixpkgs does). So on Wayland it applies a
+	// 1/dpi mouse scale even though Wayland already reports the cursor in logical coordinates.
+	envBuf: [64]u8
+	onWayland := ODIN_OS == .Linux && os.get_env(envBuf[:], "WAYLAND_DISPLAY") != ""
+
 	for !rl.WindowShouldClose() {
+		if onWayland do rl.SetMouseScale(1, 1)
 
 		if rl.IsWindowResized() {
 			WIDTH = rl.GetScreenWidth()

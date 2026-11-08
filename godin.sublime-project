@@ -10,21 +10,22 @@
 		{
 			"name": "Odin Run",
 			"working_dir": "${project_path}",
-			"shell_cmd": "odin run . -debug",
+			"shell_cmd": "direnv exec . odin run . -debug",
 		},
 		{
 			"name": "Odin Run File",
-			"cmd": ["odin", "run", "$file", "-file"],
+			"working_dir": "${project_path}",
+			"cmd": ["direnv", "exec", "${project_path}", "odin", "run", "$file", "-file"],
 		},
 		{
 			"name": "Odin Run Release",
 			"working_dir": "${project_path}",
-			"shell_cmd": "odin run . -o:aggressive -no-bounds-check -microarch:native"
+			"shell_cmd": "direnv exec . odin run . -o:aggressive -no-bounds-check -microarch:native"
 		},
 		{
 			"name": "Odin Build Tests",
 			"working_dir": "${project_path}",
-			"shell_cmd": "odin build . -debug -build-mode:test -out:test.exe"
+			"shell_cmd": "direnv exec . odin build . -debug -build-mode:test -out:test.exe"
 		}
 	],
 	"settings":

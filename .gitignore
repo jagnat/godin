@@ -6,3 +6,4 @@ test.exe
 *.rdi
 *.dSYM
 .DS_Store
+.direnv/
